@@ -184,7 +184,7 @@
     return all;
   }
   function ftImg(x){
-    const q=encodeURIComponent((x.image||"agriculture crop field farming").trim());
+    const q=encodeURIComponent((x.name+" "+(x.category||"agriculture")+" farming").trim());
     return "https://source.unsplash.com/900x560/?"+q;
   }
   function ftPage(q){
