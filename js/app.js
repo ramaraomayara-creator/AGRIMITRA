@@ -479,7 +479,7 @@ function pageMarket(q, comm){
 function mkStatusHTML(){
   const s=mkS();
   if(s.status==="loading") return '<p><span class="badge blue">… Loading</span></p><p class="muted">Contacting the market data service…</p>';
-  if(s.status==="live") return '<p><b>🟢 Government API Data</b></p><p class="small">Fetched: <b>'+esc(mkWhen(s.meta.fetchedAt))+'</b> • Latest record date: <b>'+esc(s.meta.dataDate||"—")+'</b><br>Source: Government of India Open Government Data Platform</p>';
+  if(s.status==="live") return '<p><b>🟢 LIVE API MARKET DATA</b></p><p class="small">Fetched: <b>'+esc(mkWhen(s.meta.fetchedAt))+'</b> • Latest record date: <b>'+esc(s.meta.dataDate||"—")+'</b><br>Source: '+esc(s.meta.source||"Government market API")+'</p>';
   if(s.status==="cached") return '<p><b>🟡 Cached Verified Data</b></p><p class="small">Live market data temporarily unavailable. Showing last verified market data.<br>Last Updated: <b>'+esc(mkWhen(s.meta.fetchedAt))+'</b></p>';
   if(s.status==="demo") return '<p><b>🔵 Verified Reference Data (sample)</b></p><p class="small">Backend unreachable — showing built-in sample records for layout only. These are <b>not</b> live prices.<br><button class="btn btn-sm" id="mkRetry">Try live again</button></p>';
   return '<p><b>🔴 Data Unavailable</b></p><p>'+esc(s.err||"Market data could not be loaded right now. Please try again later.")+'</p><button class="btn btn-sm" id="mkRetry">Try again</button>';
