@@ -1,52 +1,81 @@
 "use strict";
-/* Weather provider (OpenWeather-compatible base, replaceable) → normalized. */
+/* Keyless weather provider using Open-Meteo. No weather API key is required for the free non-commercial API. */
 const { fetchJson } = require("../utils/http");
 const { createCache } = require("../utils/cache");
-const logger = require("../utils/logger");
 const cache = createCache();
+
+const GEOCODE_URL = "https://geocoding-api.open-meteo.com/v1/search";
+const FORECAST_URL = "https://api.open-meteo.com/v1/forecast";
+
 const num = (v) => (typeof v === "number" && Number.isFinite(v) ? v : null);
+
+function weatherText(code) {
+  const m = {
+    0:"Clear sky",1:"Mainly clear",2:"Partly cloudy",3:"Overcast",45:"Fog",48:"Rime fog",
+    51:"Light drizzle",53:"Drizzle",55:"Heavy drizzle",56:"Freezing drizzle",57:"Heavy freezing drizzle",
+    61:"Light rain",63:"Rain",65:"Heavy rain",66:"Freezing rain",67:"Heavy freezing rain",
+    71:"Light snow",73:"Snow",75:"Heavy snow",77:"Snow grains",80:"Rain showers",81:"Rain showers",
+    82:"Heavy rain showers",85:"Snow showers",86:"Heavy snow showers",95:"Thunderstorm",
+    96:"Thunderstorm with hail",99:"Thunderstorm with hail"
+  };
+  return m[code] || "Current conditions";
+}
+
 async function getWeather(cfg, f) {
-  if (!cfg.weatherApiKey) { const e = new Error("Weather API not configured"); e.code = "NOT_CONFIGURED"; throw e; }
-  const key = "wx:" + JSON.stringify(f);
+  const key = "wx-open-meteo:" + JSON.stringify(f);
   const hit = cache.get(key);
   if (hit) { hit.cached = true; return hit; }
-  const loc = f.lat !== undefined ? `lat=${f.lat}&lon=${f.lon}` : `q=${encodeURIComponent(f.q || "")}`;
-  let cur, fc;
-  try {
-    cur = await fetchJson(`${cfg.weatherApiUrl}/weather?${loc}&appid=${cfg.weatherApiKey}&units=metric`);
-    fc = await fetchJson(`${cfg.weatherApiUrl}/forecast?${loc}&appid=${cfg.weatherApiKey}&units=metric&cnt=40`);
-  } catch (e) {
-    logger.warn("weather upstream failed", { code: e && e.code });
-    const y = new Error("Upstream unavailable"); y.code = "UPSTREAM_UNAVAILABLE"; throw y;
+
+  let lat = f.lat, lon = f.lon, place = f.q || "";
+  if (lat === undefined || lon === undefined) {
+    const g = await fetchJson(GEOCODE_URL + "?name=" + encodeURIComponent(place) + "&count=1&language=en&format=json");
+    if (!g.results || !g.results.length) {
+      const e = new Error("Place not found"); e.code = "PLACE_NOT_FOUND"; throw e;
+    }
+    lat = g.results[0].latitude;
+    lon = g.results[0].longitude;
+    place = g.results[0].name;
   }
-  const byDay = {};
-  (fc.list || []).forEach((it) => {
-    const d = String(it.dt_txt || "").slice(0, 10);
-    if (!d) return;
-    (byDay[d] = byDay[d] || []).push(it);
+
+  const qs = new URLSearchParams({
+    latitude: String(lat), longitude: String(lon),
+    current: "temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m",
+    daily: "weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,precipitation_sum,sunrise,sunset",
+    forecast_days: "7", timezone: "auto",
+    temperature_unit: "celsius", wind_speed_unit: "kmh", precipitation_unit: "mm"
   });
-  const forecast = Object.keys(byDay).sort().slice(0, 7).map((d) => {
-    const arr = byDay[d];
-    const ts = arr.map((x) => x.main && x.main.temp).filter((x) => typeof x === "number");
-    const rains = arr.filter((x) => (x.rain && x.rain["3h"]) || /rain/i.test((x.weather || [])[0] ? x.weather[0].main : "")).length;
-    return {
-      date: d,
-      tempMin: ts.length ? Math.min(...ts) : null,
-      tempMax: ts.length ? Math.max(...ts) : null,
-      condition: (arr[Math.floor(arr.length / 2)].weather || [])[0] ? arr[Math.floor(arr.length / 2)].weather[0].main : "",
-      rainChance: Math.round((rains / arr.length) * 100),
-    };
-  });
+
+  const d = await fetchJson(FORECAST_URL + "?" + qs.toString());
+  const c = d.current || {}, dl = d.daily || {};
+  const forecast = (dl.time || []).map((date, i) => ({
+    date,
+    tempMin: num(dl.temperature_2m_min && dl.temperature_2m_min[i]),
+    tempMax: num(dl.temperature_2m_max && dl.temperature_2m_max[i]),
+    rainChance: num(dl.precipitation_probability_max && dl.precipitation_probability_max[i]),
+    precipitation: num(dl.precipitation_sum && dl.precipitation_sum[i]),
+    weatherCode: dl.weather_code && dl.weather_code[i],
+    condition: weatherText(dl.weather_code && dl.weather_code[i])
+  }));
+
   const out = {
-    location: (cur.name || f.q || "") + (cur.sys && cur.sys.country ? ", " + cur.sys.country : ""),
-    temperature: num(cur.main && cur.main.temp),
-    humidity: num(cur.main && cur.main.humidity),
-    rainfall: num(cur.rain && (cur.rain["1h"] || cur.rain["3h"])),
-    windSpeed: num(cur.wind && cur.wind.speed),
-    weatherCondition: (cur.weather || [])[0] ? cur.weather[0].main : "",
+    location: place || (lat + ", " + lon),
+    latitude: num(lat), longitude: num(lon),
+    temperature: num(c.temperature_2m),
+    apparentTemperature: num(c.apparent_temperature),
+    humidity: num(c.relative_humidity_2m),
+    rainfall: num(c.precipitation),
+    windSpeed: num(c.wind_speed_10m),
+    weatherCode: c.weather_code,
+    weatherCondition: weatherText(c.weather_code),
     forecast,
-    source: "OpenWeather (configurable provider)", fetchedAt: new Date().toISOString(),
-    isLive: true, cached: false,
+    timezone: d.timezone || "",
+    timezoneAbbreviation: d.timezone_abbreviation || "",
+    currentTime: c.time || "",
+    source: "Open-Meteo",
+    sourceUrl: "https://open-meteo.com/",
+    fetchedAt: new Date().toISOString(),
+    isLive: true,
+    cached: false
   };
   cache.set(key, out, cfg.cacheTtlMs);
   return out;
