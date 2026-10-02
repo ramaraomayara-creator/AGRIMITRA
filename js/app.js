@@ -469,7 +469,7 @@ function pageMarket(q, comm){
   +'<input id="mDate" placeholder="Date (e.g. 26/09/2026)" aria-label="Date">'
   +'<input id="mSearch" placeholder="Search crop or market..." value="'+esc(comm)+'" aria-label="Search" style="flex:1;min-width:200px"></div>'
   +'<p class="muted small" id="mkCount"></p>'
-  +'<div class="table-wrap"><table><thead><tr><th>Commodity</th><th>Variety</th><th>Market</th><th>District</th><th>State</th><th>Min</th><th>Max</th><th>Modal</th><th>Unit</th><th>Arrival Date</th><th>Status</th><th></th></tr></thead><tbody id="mkBody"><tr><td colspan="12" style="text-align:center">Loading…</td></tr></tbody></table></div>'
+  +'<div class="table-wrap market-table-wrap"><table class="market-table"><thead><tr><th>Crop / Commodity</th><th>Variety</th><th>Market / APMC</th><th>District</th><th>State</th><th>Min Price</th><th>Max Price</th><th>Modal Price</th><th>Unit</th><th>Arrival Date</th><th>API Status</th><th>Market Full Details</th></tr></thead><tbody id="mkBody"><tr><td colspan="12" style="text-align:center">Loading…</td></tr></tbody></table></div>'
   +'<p class="muted small">* The Government dataset publishes minimum, maximum and modal prices by market/commodity/variety/date. Check the record date and unit before using a price for a sale decision.</p>'
   +'<div id="mkDetail" style="margin-top:12px"></div>'
   +'<div class="section-title"><h2>Modal price comparison</h2></div><div id="mkChart"><p class="muted">Chart appears with live records.</p></div>'
@@ -517,12 +517,33 @@ function mkPaintTable(){
   if(s.status==="loading"){ body.innerHTML='<tr><td colspan="12" style="text-align:center">Loading…</td></tr>'; return; }
   if(s.status==="error"){ body.innerHTML='<tr><td colspan="12" style="text-align:center;color:var(--muted)">No data — see status above.</td></tr>'; document.getElementById("mkCount").textContent=""; return; }
   const rows=mkFiltered(), vis=rows.slice(0,100);
-  const tag = s.status==="live"?'<span class="badge">GOVT DATA</span>':(s.status==="cached"?'<span class="badge amber">CACHED VERIFIED DATA</span>':'<span class="badge demo">REFERENCE / UNAVAILABLE</span>');
-  document.getElementById("mkCount").textContent = rows.length?("Showing "+vis.length+" of "+rows.length+" records"):"";
-  body.innerHTML = rows.length? vis.map(r=>{ const i=s.records.indexOf(r);
-    return '<tr><td><b>'+esc(r.commodity)+'</b></td><td>'+esc(r.variety||"—")+'</td><td>'+esc(r.market)+'</td><td>'+esc(r.district)+'</td><td>'+esc(r.state)+'</td><td>'+mkRs(r.minPrice)+'</td><td>'+mkRs(r.maxPrice)+'</td><td><b>'+mkRs(r.modalPrice)+'</b></td><td>'+esc(r.unit||"Quintal*")+'</td><td>'+esc(r.date)+'</td><td>'+tag+'</td><td><button class="btn btn-sm" data-mk="'+i+'">View Market Details</button></td></tr>';
-  }).join("") : '<tr><td colspan="12" style="text-align:center;color:var(--muted)">No market data available for this selection.</td></tr>';
-  body.querySelectorAll("[data-mk]").forEach(b=>b.onclick=()=>mkShowDetail(+b.dataset.mk));
+  const tag = s.status==="live"
+    ? '<span class="badge live-api-badge">LIVE API</span>'
+    : (s.status==="cached"
+      ? '<span class="badge amber">CACHED</span>'
+      : '<span class="badge demo">UNAVAILABLE</span>');
+  document.getElementById("mkCount").textContent = rows.length
+    ? ("Showing "+vis.length+" of "+rows.length+" records • Latest available API records")
+    : "";
+  body.innerHTML = rows.length ? vis.map(r=>{ const i=s.records.indexOf(r);
+    const src=String(r.source||s.meta.source||"Market API");
+    const live=r.isLive!==false && s.status==="live";
+    const statusTag=live ? tag : '<span class="badge blue">'+esc(src.length>22?src.slice(0,22)+"…":src)+'</span>';
+    return '<tr>'
+      +'<td><b>'+esc(r.commodity||"—")+'</b></td>'
+      +'<td>'+esc(r.variety||"—")+'</td>'
+      +'<td><b>'+esc(r.market||"—")+'</b></td>'
+      +'<td>'+esc(r.district||"—")+'</td>'
+      +'<td>'+esc(r.state||"—")+'</td>'
+      +'<td>'+mkRs(r.minPrice)+'</td>'
+      +'<td>'+mkRs(r.maxPrice)+'</td>'
+      +'<td><b class="modal-price">'+mkRs(r.modalPrice)+'</b></td>'
+      +'<td>'+esc(r.unit||"Quintal")+'</td>'
+      +'<td>'+esc(r.date||"—")+'</td>'
+      +'<td>'+statusTag+'</td>'
+      +'<td><button class="btn btn-sm market-detail-btn" data-mk="'+i+'">Market Full Details</button></td>'
+      +'</tr>';
+  }).join("") : '<tr><td colspan="12" style="text-align:center;color:var(--muted);padding:24px">No market data available for this selection.</td></tr>';
   const ch=document.getElementById("mkChart");
   if(ch){ const top=rows.filter(r=>r.modalPrice!=null).slice(0,8);
     ch.innerHTML = top.length? barChart(top.map(r=>String(r.commodity).split(" ")[0]+"@"+String(r.market).split(" ")[0]), top.map(r=>r.modalPrice)) : '<p class="muted">Chart appears with live records.</p>'; }
