@@ -457,8 +457,8 @@ function mkWhen(iso){ try{ return new Date(iso).toLocaleString("en-IN",{day:"2-d
 function pageMarket(q, comm){
   q=q||""; comm=comm||q;
   const mandals = DB.locations.mandals;
-  return '<div class="section-title"><h2>Live Agricultural Market Prices</h2><button class="btn btn-primary btn-sm" id="mkRefresh">↻ Refresh Prices</button></div>'
-  +'<p class="muted">Updated mandi prices from available government market data</p>'
+  return '<div class="section-title"><h2>Current Government Mandi Prices (Daily)</h2><button class="btn btn-primary btn-sm" id="mkRefresh">↻ Refresh Prices</button></div>'
+  +'<p class="muted">Latest available daily records from the Government of India mandi dataset. This is daily administrative market data, not a real-time trading quote.</p>'
   +'<div class="card" id="mkStatus" style="margin-bottom:12px"><p class="muted">Loading…</p></div>'
   +'<div class="filters"><select id="mState" aria-label="State"><option value="">State: All</option></select>'
   +'<select id="mDist" aria-label="District"><option value="">District: All</option></select>'
@@ -470,16 +470,16 @@ function pageMarket(q, comm){
   +'<input id="mSearch" placeholder="Search crop or market..." value="'+esc(comm)+'" aria-label="Search" style="flex:1;min-width:200px"></div>'
   +'<p class="muted small" id="mkCount"></p>'
   +'<div class="table-wrap"><table><thead><tr><th>Commodity</th><th>Variety</th><th>Market</th><th>District</th><th>State</th><th>Min</th><th>Max</th><th>Modal</th><th>Unit</th><th>Arrival Date</th><th>Status</th><th></th></tr></thead><tbody id="mkBody"><tr><td colspan="12" style="text-align:center">Loading…</td></tr></tbody></table></div>'
-  +'<p class="muted small">* Mandi modal prices are conventionally per quintal — verify unit and price with the APMC before selling.</p>'
+  +'<p class="muted small">* The Government dataset publishes minimum, maximum and modal prices by market/commodity/variety/date. Check the record date and unit before using a price for a sale decision.</p>'
   +'<div id="mkDetail" style="margin-top:12px"></div>'
   +'<div class="section-title"><h2>Modal price comparison</h2></div><div id="mkChart"><p class="muted">Chart appears with live records.</p></div>'
-  +'<p class="muted small">Historical trend (7/30/90 days): the daily-current market API does not provide history — historical data is not available for this selection.</p>'
+  +'<p class="muted small">Historical trend (7/30/90 days): this current-daily resource does not provide the selected history directly, so no invented trend is shown.</p>'
   +'<div class="alert" style="margin-top:12px">Source: Government of India Open Government Data Platform — <a href="'+MARKET_DATASET_URL+'" target="_blank" rel="noopener">Current Daily Price … (Mandi) dataset</a>.<br>Prices are indicative market data. Verify the latest price with the respective market/APMC before selling.</div>';
 }
 function mkStatusHTML(){
   const s=mkS();
   if(s.status==="loading") return '<p><span class="badge blue">… Loading</span></p><p class="muted">Contacting the market data service…</p>';
-  if(s.status==="live") return '<p><b>🟢 Live API Data</b></p><p class="small">Last Updated: <b>'+esc(mkWhen(s.meta.fetchedAt))+'</b> • Data Date: <b>'+esc(s.meta.dataDate||"—")+'</b><br>Source: Government Market Data</p>';
+  if(s.status==="live") return '<p><b>🟢 Government API Data</b></p><p class="small">Fetched: <b>'+esc(mkWhen(s.meta.fetchedAt))+'</b> • Latest record date: <b>'+esc(s.meta.dataDate||"—")+'</b><br>Source: Government of India Open Government Data Platform</p>';
   if(s.status==="cached") return '<p><b>🟡 Cached Verified Data</b></p><p class="small">Live market data temporarily unavailable. Showing last verified market data.<br>Last Updated: <b>'+esc(mkWhen(s.meta.fetchedAt))+'</b></p>';
   if(s.status==="demo") return '<p><b>🔵 Verified Reference Data (sample)</b></p><p class="small">Backend unreachable — showing built-in sample records for layout only. These are <b>not</b> live prices.<br><button class="btn btn-sm" id="mkRetry">Try live again</button></p>';
   return '<p><b>🔴 Data Unavailable</b></p><p>'+esc(s.err||"Market data could not be loaded right now. Please try again later.")+'</p><button class="btn btn-sm" id="mkRetry">Try again</button>';
@@ -517,7 +517,7 @@ function mkPaintTable(){
   if(s.status==="loading"){ body.innerHTML='<tr><td colspan="12" style="text-align:center">Loading…</td></tr>'; return; }
   if(s.status==="error"){ body.innerHTML='<tr><td colspan="12" style="text-align:center;color:var(--muted)">No data — see status above.</td></tr>'; document.getElementById("mkCount").textContent=""; return; }
   const rows=mkFiltered(), vis=rows.slice(0,100);
-  const tag = s.status==="live"?'<span class="badge">LIVE DATA</span>':(s.status==="cached"?'<span class="badge amber">CACHED VERIFIED DATA</span>':'<span class="badge demo">DATA UNAVAILABLE</span>');
+  const tag = s.status==="live"?'<span class="badge">GOVT DATA</span>':(s.status==="cached"?'<span class="badge amber">CACHED VERIFIED DATA</span>':'<span class="badge demo">REFERENCE / UNAVAILABLE</span>');
   document.getElementById("mkCount").textContent = rows.length?("Showing "+vis.length+" of "+rows.length+" records"):"";
   body.innerHTML = rows.length? vis.map(r=>{ const i=s.records.indexOf(r);
     return '<tr><td><b>'+esc(r.commodity)+'</b></td><td>'+esc(r.variety||"—")+'</td><td>'+esc(r.market)+'</td><td>'+esc(r.district)+'</td><td>'+esc(r.state)+'</td><td>'+mkRs(r.minPrice)+'</td><td>'+mkRs(r.maxPrice)+'</td><td><b>'+mkRs(r.modalPrice)+'</b></td><td>'+esc(r.unit||"Quintal*")+'</td><td>'+esc(r.date)+'</td><td>'+tag+'</td><td><button class="btn btn-sm" data-mk="'+i+'">View Market Details</button></td></tr>';
