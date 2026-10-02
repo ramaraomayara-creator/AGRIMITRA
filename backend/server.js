@@ -27,7 +27,7 @@ require("./routes/catalog.routes").register(routes);
 require("./routes/market.routes").register(routes, cfg);
 require("./routes/weather.routes").register(routes, cfg);
 require("./routes/images.routes").register(routes, cfg);
-createApp(cfg, routes).listen(cfg.port, () => {
-  logger.info(`AgriMitra backend on http://localhost:${cfg.port}`);
+createApp(cfg, routes).listen(cfg.port, "0.0.0.0", () => {
+  logger.info(`AgriMitra backend listening on 0.0.0.0:${cfg.port}`);
   logger.info(`market=AGMARKNET 2.0 primary; OGD/CEDA optional fallbacks weather=Open-Meteo (keyless) images=commons (keyless)`);
 });
