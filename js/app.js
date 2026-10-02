@@ -587,7 +587,7 @@ function mkLoad(force){
       else { s.status="error"; s.err="Market data could not be loaded right now. Please try again later."; }
     }
     mkPaintAll();
-    const rb2=document.getElementById("mkRefresh"); if(rb2){ rb2.disabled=false; rb.textContent="↻ Refresh Prices"; }
+    const rb2=document.getElementById("mkRefresh"); if(rb2){ rb2.disabled=false; rb2.textContent="↻ Refresh Prices"; }
   });
 }
 function mkPaintAll(){ mkPaintStatus(); mkFillFacets(); mkPaintTable(); }
