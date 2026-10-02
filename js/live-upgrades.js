@@ -168,3 +168,81 @@
     };
   };
 })();
+
+
+/* ---------- 200+ FARMING TYPES UI ---------- */
+(function(){
+  "use strict";
+  function ftAll(){
+    const base=(window.DB&&Array.isArray(DB.farmingTypes))?DB.farmingTypes.map((x,i)=>({
+      id:"ft-base-"+i,name:x.name||"Farming Type",category:x.cat||"Farming",image:x.image||"",
+      icon:x.icon||"🌾",description:x.def||x.description||"Agricultural production method."
+    })):[];
+    const extra=Array.isArray(window.AGRI_FARMING_200)?window.AGRI_FARMING_200:[];
+    const seen=new Set(), all=[];
+    base.concat(extra).forEach(x=>{const k=String(x.name||"").trim().toLowerCase();if(k&&!seen.has(k)){seen.add(k);all.push(x);}});
+    return all;
+  }
+  function ftImg(x){
+    const q=encodeURIComponent((x.image||"agriculture crop field farming").trim());
+    return "https://source.unsplash.com/900x560/?"+q;
+  }
+  function ftPage(q){
+    const all=ftAll(), query=String(q||"").trim().toLowerCase();
+    const hits=query?all.filter(x=>(x.name+" "+x.category+" "+(x.description||"")).toLowerCase().includes(query)):all.slice(0,100);
+    const showing=query?hits.length:Math.min(100,all.length);
+    return '<div class="section-title"><div><h2>🌾 Farming Types</h2><p class="muted">Explore '+all.length+' farming types. The first 100 are shown by default; search to find any type.</p></div></div>'
+      +'<div class="card" style="margin-bottom:16px"><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">'
+      +'<input id="ft200Search" type="search" value="'+amEsc(q||"")+'" placeholder="Search 200+ farming types..." style="flex:1;min-width:240px;padding:11px;border:1px solid var(--border);border-radius:10px">'
+      +'<span class="badge blue">'+(query?("Search results: "+hits.length):"Showing first 100")+" / "+all.length+'</span></div></div>'
+      +'<div class="grid g3" id="ft200Grid">'+(hits.length?hits.map(x=>'<article class="card" style="overflow:hidden;padding:0;display:flex;flex-direction:column">'
+      +'<div style="height:175px;background:#eef6ed;overflow:hidden"><img src="'+ftImg(x)+'" alt="'+amEsc(x.name)+'" loading="lazy" referrerpolicy="no-referrer" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display=\'none\';this.parentElement.innerHTML=\'<div style=\'height:100%;display:grid;place-items:center;font-size:64px\'>🌾</div>\'"></div>'
+      +'<div style="padding:15px"><div class="small muted">'+amEsc(x.category)+'</div><h3 style="margin:5px 0 8px">'+amEsc(x.name)+'</h3><p class="small muted">'+amEsc(x.description)+'</p><button class="btn btn-sm btn-primary" data-ft200="'+amEsc(x.name)+'">View type</button></div>'
+      +'</article>').join(""):'<div class="empty" style="grid-column:1/-1">No farming type found. Try another search.</div>')+'</div>'
+      +'<p class="muted small" style="margin-top:14px">Images are loaded from an external image service using the farming-type category/keywords. If an image is unavailable, the card shows a farming fallback icon.</p>';
+  }
+  function ftBind200(){
+    const input=document.getElementById("ft200Search");
+    if(input) input.onkeydown=function(e){if(e.key==="Enter"){location.hash="#/farming-types?q="+encodeURIComponent(input.value.trim());}};
+    if(input) input.oninput=function(){
+      const v=input.value.trim();
+      if(!v){history.replaceState(null,"","#/farming-types"); const el=document.getElementById("app"); if(el) el.innerHTML=ftPage(""); ftBind200(); return;}
+      const all=ftAll(), hits=all.filter(x=>(x.name+" "+x.category+" "+(x.description||"")).toLowerCase().includes(v.toLowerCase()));
+      const grid=document.getElementById("ft200Grid"), badge=document.querySelector("#ft200Search+span");
+      if(grid) grid.innerHTML=hits.length?hits.map(x=>'<article class="card" style="overflow:hidden;padding:0;display:flex;flex-direction:column"><div style="height:175px;background:#eef6ed;overflow:hidden"><img src="'+ftImg(x)+'" alt="'+amEsc(x.name)+'" loading="lazy" referrerpolicy="no-referrer" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display=\'none\';this.parentElement.innerHTML=\'<div style=\'height:100%;display:grid;place-items:center;font-size:64px\'>🌾</div>\'"></div><div style="padding:15px"><div class="small muted">'+amEsc(x.category)+'</div><h3 style="margin:5px 0 8px">'+amEsc(x.name)+'</h3><p class="small muted">'+amEsc(x.description)+'</p><button class="btn btn-sm btn-primary" data-ft200="'+amEsc(x.name)+'">View type</button></div></article>').join(""):'<div class="empty" style="grid-column:1/-1">No farming type found.</div>';
+      if(badge) badge.textContent="Search results: "+hits.length+" / "+all.length;
+      bindFt200Buttons();
+    };
+    bindFt200Buttons();
+  }
+  function bindFt200Buttons(){
+    document.querySelectorAll("[data-ft200]").forEach(b=>b.onclick=function(){
+      const name=this.getAttribute("data-ft200");
+      const match=ftAll().find(x=>x.name.toLowerCase()===name.toLowerCase());
+      const existing=window.DB&&DB.farmingTypes&&DB.farmingTypes.find(x=>String(x.name).toLowerCase()===name.toLowerCase());
+      if(existing&&typeof ftDetailPage==="function"){ftDetailPage(existing.name);bindCards();window.scrollTo(0,0);return;}
+      const app=document.getElementById("app");
+      if(!app||!match)return;
+      app.innerHTML='<div class="section-title"><h2>🌾 '+amEsc(match.name)+'</h2><a class="btn btn-sm" href="#/farming-types">← Back to Farming Types</a></div><div class="grid g2"><div class="card"><img src="'+ftImg(match)+'" alt="'+amEsc(match.name)+'" style="width:100%;max-height:420px;object-fit:cover;border-radius:12px" onerror="this.style.display=\'none\'"><h3 style="margin-top:14px">'+amEsc(match.name)+'</h3><p class="muted">'+amEsc(match.description)+'</p></div><div class="card"><h3>About this type</h3><p><b>Category:</b> '+amEsc(match.category)+'</p><p>This entry is a general farming-type reference. Suitability, crop choice, input rates and local practices should be checked against your soil, climate, water availability and local agricultural guidance.</p><a class="btn btn-primary" href="#/farming-types">Explore other types</a></div></div>';
+      window.scrollTo(0,0);
+    });
+  }
+  const oldRender2=window.render;
+  window.render=function(){
+    oldRender2();
+    const r=(location.hash||"").replace(/^#\/?/,"").split("?")[0];
+    if(r==="farming-types"){
+      const params=new URLSearchParams((location.hash.split("?")[1]||""));
+      const q=params.get("q")||"";
+      setTimeout(function(){const app=document.getElementById("app");if(app){app.innerHTML=ftPage(q);ftBind200();}},0);
+    }
+  };
+  window.addEventListener("hashchange",function(){
+    const r=(location.hash||"").replace(/^#\/?/,"").split("?")[0];
+    if(r==="farming-types"){
+      const params=new URLSearchParams((location.hash.split("?")[1]||""));
+      const q=params.get("q")||"";
+      setTimeout(function(){const app=document.getElementById("app");if(app){app.innerHTML=ftPage(q);ftBind200();}},0);
+    }
+  });
+})();
