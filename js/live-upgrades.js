@@ -62,7 +62,7 @@
       const u=AM_LIVE.forecast+"?latitude="+encodeURIComponent(p.latitude)+"&longitude="+encodeURIComponent(p.longitude)
         +"&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m"
         +"&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,precipitation_sum,sunrise,sunset"
-        +"&forecast_days=7&timezone=auto";
+        +"&forecast_days=7&timezone=auto&temperature_unit=celsius&wind_speed_unit=kmh&precipitation_unit=mm";
       const d=await amJSON(u);
       const c=d.current||{}, dl=d.daily||{};
       const days=(dl.time||[]).map((date,i)=>'<div class="card" style="text-align:center"><b>'+amEsc(amFmtDate(date))+'</b><div style="font-size:30px">'+amWeatherIcon(dl.weather_code[i])+'</div><p><b>'+dl.temperature_2m_max[i]+'° / '+dl.temperature_2m_min[i]+'°C</b><br><small>Rain chance '+(dl.precipitation_probability_max[i]??"—")+'% • '+(dl.precipitation_sum[i]??0)+' mm</small></p></div>').join("");
@@ -87,11 +87,18 @@
   }
 
   function amWeatherBind(){
+    if(window._amWxT){ clearInterval(window._amWxT); window._amWxT=null; }
     const input=document.getElementById("wPlaceLive"), btn=document.getElementById("wGo");
     const go=()=>amLoadWeather((input&&input.value||"Guntur, AP").trim());
     if(btn) btn.onclick=go;
     if(input) input.onkeydown=e=>{if(e.key==="Enter") go();};
     go();
+    window._amWxT=setInterval(()=>{
+      if(!document.hidden && (location.hash||"").indexOf("#/weather")===0){
+        const p=((document.getElementById("wPlaceLive")||{}).value||"Guntur, AP").trim();
+        amLoadWeather(p);
+      }
+    },15*60*1000);
   }
 
   const oldRender=window.render;
