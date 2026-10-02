@@ -24,6 +24,14 @@ function normalize(r) {
     fetchedAt: new Date().toISOString(),
   };
 }
+const flattenMarketObjects = (value, out=[]) => {
+  if (Array.isArray(value)) { value.forEach(x=>flattenMarketObjects(x,out)); return out; }
+  if (!value || typeof value !== "object") return out;
+  const keys=Object.keys(value);
+  if (keys.some(k=>/modal|model|min_price|max_price|minPrice|maxPrice/i.test(k)) && keys.some(k=>/commodity|market|crop/i.test(k))) out.push(value);
+  Object.values(value).forEach(x=>{ if(x && typeof x==="object") flattenMarketObjects(x,out); });
+  return out;
+};
 async function getAgmarknetPrices(cfg, f) {
   const base = (cfg.agmarknetApiUrl || "https://api.agmarknet.gov.in/v1").replace(/\\/$/,"");
   const headers = {
@@ -35,17 +43,8 @@ async function getAgmarknetPrices(cfg, f) {
   const get = (path, params) => fetchJson(base + path + (params ? "?" + new URLSearchParams(params).toString() : ""), {headers});
   const pick = (o, keys) => { for (const k of keys) if (o && o[k] != null && o[k] !== "") return o[k]; return ""; };
   const num2 = v => { const n=parseFloat(String(v ?? "").replace(/,/g,"").replace(/₹/g,"")); return Number.isFinite(n)?n:null; };
-  const flatten = (v,out=[]) => {
-    if(Array.isArray(v)){v.forEach(x=>flatten(x,out));return out;}
-    if(v&&typeof v==="object"){
-      const ks=Object.keys(v);
-      if(ks.some(k=>/modal|model|min_price|max_price|minPrice|maxPrice/i.test(k)) && ks.some(k=>/commodity|market|crop/i.test(k))) out.push(v);
-      Object.values(v).forEach(x=>{if(x&&typeof x==="object")flatten(x,out);});
-    }
-    return out;
-  };
   const statesBody = await get("/location/state",{page:"1"});
-  let states = Array.isArray(statesBody?.states) ? statesBody.states : flatten(statesBody);
+  let states = Array.isArray(statesBody?.states) ? statesBody.states : flattenMarketObjects(statesBody);
   const sid = x => pick(x,["id","stateId","state_id","stateCode","state_code"]);
   const sn = x => String(pick(x,["name","state","stateName","state_name","State"]));
   let ids=states.map(sid).filter(Boolean);
@@ -56,7 +55,7 @@ async function getAgmarknetPrices(cfg, f) {
   for(const dt of dates){
     try{
       const body=await get("/prices-and-arrivals/commodity-wise/daily-report-state",{date:dt,stateIds:ids.join(","),includeExcel:"false"});
-      rows=flatten(body).map(x=>({
+      rows=flattenMarketObjects(body).map(x=>({
         commodity:String(pick(x,["commodity","Commodity","commodity_name","crop","Crop"])),
         variety:String(pick(x,["variety","Variety","variety_name"])),
         grade:String(pick(x,["grade","Grade"])),
@@ -102,7 +101,7 @@ async function getPrices(cfg, f) {
       method:"POST",headers:{Authorization:"Bearer "+cfg.cedaApiKey,"Content-Type":"application/json",Accept:"application/json"},
       body:{commodity:f.commodity,state:f.state,district:f.district,start_date:f.arrival_date,end_date:f.arrival_date,calculation_type:"d",chart_type:"datadownload"}
     });
-    const records=flatten(body).map(normalize).filter(r=>r.commodity&&(r.modalPrice!==null||r.minPrice!==null||r.maxPrice!==null));
+    const records=flattenMarketObjects(body).map(normalize).filter(r=>r.commodity&&(r.modalPrice!==null||r.minPrice!==null||r.maxPrice!==null));
     if(!records.length) throw Object.assign(new Error("CEDA returned no records"),{code:"NO_RECORDS"});
     return {records,total:records.length,dataDate:f.arrival_date||"",fetchedAt:new Date().toISOString(),source:"CEDA Agri Market Data",sourceUrl:"https://agmarknet.ceda.ashoka.edu.in/",isLive:false,cached:false};
   });
