@@ -577,8 +577,8 @@ function mkLoad(force){
   Object.keys(params).forEach(k=>params[k]===undefined&&delete params[k]);
   Api.marketPrices(params).then(r=>{
     if(r.ok && r.data && Array.isArray(r.data.records) && r.data.records.length){
-      s.records=r.data.records.map(x=>({commodity:x.commodity,variety:x.variety,grade:x.grade,market:x.market,district:x.district,state:x.state,minPrice:x.minPrice,maxPrice:x.maxPrice,modalPrice:x.modalPrice,unit:x.unit||"Quintal*",date:x.arrivalDate}));
-      s.meta={fetchedAt:r.data.fetchedAt,dataDate:r.data.dataDate}; s.status="live";
+      s.records=r.data.records.map(x=>({commodity:x.commodity,variety:x.variety,grade:x.grade,market:x.market,district:x.district,state:x.state,minPrice:x.minPrice,maxPrice:x.maxPrice,modalPrice:x.modalPrice,unit:x.unit||"Quintal",date:x.arrivalDate,source:x.source,isLive:x.isLive!==false,fetchedAt:x.fetchedAt||r.data.fetchedAt}));
+      s.meta={fetchedAt:r.data.fetchedAt,dataDate:r.data.dataDate,source:r.data.source,isLive:r.data.isLive!==false}; s.status="live";
     } else if(r.ok && r.data && Array.isArray(r.data.records)) {
       s.records=[]; s.meta={fetchedAt:r.data.fetchedAt,dataDate:""}; s.status="error"; s.err="No verified data found for this request.";
     } else {
