@@ -33,7 +33,7 @@ const flattenMarketObjects = (value, out=[]) => {
   return out;
 };
 async function getAgmarknetPrices(cfg, f) {
-  const base = (cfg.agmarknetApiUrl || "https://api.agmarknet.gov.in/v1").replace(/\\/$/,"");
+  const base = (cfg.agmarknetApiUrl || "https://api.agmarknet.gov.in/v1").replace(/\/$/,"");
   const headers = {
     Accept: "application/json, text/plain, */*",
     Origin: "https://agmarknet.gov.in",
@@ -97,7 +97,7 @@ async function getPrices(cfg, f) {
     return {records,total:parseInt(body.total||records.length,10)||records.length,dataDate,fetchedAt:new Date().toISOString(),source:"Government OGD / data.gov.in",sourceUrl:DATASET_PAGE,isLive:true,cached:false};
   });
   if (cfg.cedaApiKey) sources.push(async()=> {
-    const body=await fetchJson((cfg.cedaApiUrl||"https://api.ceda.ashoka.edu.in").replace(/\\/$/,"")+"/agmarknet/prices",{
+    const body=await fetchJson((cfg.cedaApiUrl||"https://api.ceda.ashoka.edu.in").replace(/\/$/,"")+"/agmarknet/prices",{
       method:"POST",headers:{Authorization:"Bearer "+cfg.cedaApiKey,"Content-Type":"application/json",Accept:"application/json"},
       body:{commodity:f.commodity,state:f.state,district:f.district,start_date:f.arrival_date,end_date:f.arrival_date,calculation_type:"d",chart_type:"datadownload"}
     });
