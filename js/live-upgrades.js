@@ -183,23 +183,60 @@
     base.concat(extra).forEach(x=>{const k=String(x.name||"").trim().toLowerCase();if(k&&!seen.has(k)){seen.add(k);all.push(x);}});
     return all;
   }
-  function ftImg(x){
-    const q=encodeURIComponent((x.name+" "+(x.category||"agriculture")+" farming").trim());
-    return "https://source.unsplash.com/900x560/?"+q;
+  const ftImageCache=Object.create(null);
+  function ftFallback(){
+    return "data:image/svg+xml;charset=UTF-8,"+encodeURIComponent("<svg xmlns='http://www.w3.org/2000/svg' width='900' height='560'><rect width='100%' height='100%' fill='#eef6ed'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-size='100'>🌾</text></svg>");
+  }
+  function ftSearchTerms(x){
+    const n=String(x.name||"").replace(/Farming/ig,"").trim();
+    return n+" agriculture farm";
+  }
+  async function ftFindImage(x){
+    const key=String(x.name||"").toLowerCase();
+    if(ftImageCache[key]) return ftImageCache[key];
+    try{
+      const url="https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch="+encodeURIComponent(ftSearchTerms(x))+"&gsrnamespace=6&gsrlimit=1&prop=imageinfo&iiprop=url&iiurlwidth=900&format=json&origin=*";
+      const res=await fetch(url,{headers:{Accept:"application/json"},mode:"cors",cache:"force-cache"});
+      if(!res.ok) throw new Error("IMAGE_HTTP_"+res.status);
+      const data=await res.json(), pages=data.query&&data.query.pages?Object.values(data.query.pages):[];
+      const info=pages[0]&&pages[0].imageinfo&&pages[0].imageinfo[0];
+      const src=info&&(info.thumburl||info.url);
+      if(!src) throw new Error("IMAGE_NOT_FOUND");
+      ftImageCache[key]=src;
+      return src;
+    }catch(e){
+      ftImageCache[key]=ftFallback();
+      return ftImageCache[key];
+    }
+  }
+  function ftCard(x){
+    return '<article class="card" style="overflow:hidden;padding:0;display:flex;flex-direction:column">'
+      +'<div style="height:175px;background:#eef6ed;overflow:hidden;position:relative"><img data-ftimg="'+amEsc(x.name)+'" src="'+ftFallback()+'" alt="'+amEsc(x.name)+'" loading="lazy" style="width:100%;height:100%;object-fit:cover"></div>'
+      +'<div style="padding:15px"><div class="small muted">'+amEsc(x.category)+'</div><h3 style="margin:5px 0 8px">'+amEsc(x.name)+'</h3><p class="small muted">'+amEsc(x.description)+'</p><button class="btn btn-sm btn-primary" data-ft200="'+amEsc(x.name)+'">View type</button></div>'
+      +'</article>';
+  }
+  function ftLoadImages(){
+    const imgs=[...document.querySelectorAll("img[data-ftimg]")];
+    const load=img=>{
+      const name=img.getAttribute("data-ftimg");
+      const x=ftAll().find(v=>String(v.name).toLowerCase()===String(name).toLowerCase());
+      if(!x) return;
+      ftFindImage(x).then(src=>{img.src=src;}).catch(()=>{});
+    };
+    if("IntersectionObserver" in window){
+      const io=new IntersectionObserver(entries=>entries.forEach(e=>{if(e.isIntersecting){io.unobserve(e.target);load(e.target);}}),{rootMargin:"500px"});
+      imgs.forEach(i=>io.observe(i));
+    }else imgs.forEach(load);
   }
   function ftPage(q){
     const all=ftAll(), query=String(q||"").trim().toLowerCase();
     const hits=query?all.filter(x=>(x.name+" "+x.category+" "+(x.description||"")).toLowerCase().includes(query)):all.slice(0,100);
-    const showing=query?hits.length:Math.min(100,all.length);
     return '<div class="section-title"><div><h2>🌾 Farming Types</h2><p class="muted">Explore '+all.length+' farming types. The first 100 are shown by default; search to find any type.</p></div></div>'
       +'<div class="card" style="margin-bottom:16px"><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">'
       +'<input id="ft200Search" type="search" value="'+amEsc(q||"")+'" placeholder="Search 200+ farming types..." style="flex:1;min-width:240px;padding:11px;border:1px solid var(--border);border-radius:10px">'
       +'<span class="badge blue">'+(query?("Search results: "+hits.length):"Showing first 100")+" / "+all.length+'</span></div></div>'
-      +'<div class="grid g3" id="ft200Grid">'+(hits.length?hits.map(x=>'<article class="card" style="overflow:hidden;padding:0;display:flex;flex-direction:column">'
-      +'<div style="height:175px;background:#eef6ed;overflow:hidden"><img src="'+ftImg(x)+'" alt="'+amEsc(x.name)+'" loading="lazy" referrerpolicy="no-referrer" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display=\'none\';this.parentElement.innerHTML=\'<div style=\'height:100%;display:grid;place-items:center;font-size:64px\'>🌾</div>\'"></div>'
-      +'<div style="padding:15px"><div class="small muted">'+amEsc(x.category)+'</div><h3 style="margin:5px 0 8px">'+amEsc(x.name)+'</h3><p class="small muted">'+amEsc(x.description)+'</p><button class="btn btn-sm btn-primary" data-ft200="'+amEsc(x.name)+'">View type</button></div>'
-      +'</article>').join(""):'<div class="empty" style="grid-column:1/-1">No farming type found. Try another search.</div>')+'</div>'
-      +'<p class="muted small" style="margin-top:14px">Images are loaded from an external image service using the farming-type category/keywords. If an image is unavailable, the card shows a farming fallback icon.</p>';
+      +'<div class="grid g3" id="ft200Grid">'+(hits.length?hits.map(ftCard).join(""):'<div class="empty" style="grid-column:1/-1">No farming type found. Try another search.</div>')+'</div>'
+      +'<p class="muted small" style="margin-top:14px">Images are fetched free from Wikimedia Commons for each farming type. Images load as cards enter the screen; a farming fallback is shown if no matching image is available.</p>';
   }
   function ftBind200(){
     const input=document.getElementById("ft200Search");
@@ -209,11 +246,11 @@
       if(!v){history.replaceState(null,"","#/farming-types"); const el=document.getElementById("app"); if(el) el.innerHTML=ftPage(""); ftBind200(); return;}
       const all=ftAll(), hits=all.filter(x=>(x.name+" "+x.category+" "+(x.description||"")).toLowerCase().includes(v.toLowerCase()));
       const grid=document.getElementById("ft200Grid"), badge=document.querySelector("#ft200Search+span");
-      if(grid) grid.innerHTML=hits.length?hits.map(x=>'<article class="card" style="overflow:hidden;padding:0;display:flex;flex-direction:column"><div style="height:175px;background:#eef6ed;overflow:hidden"><img src="'+ftImg(x)+'" alt="'+amEsc(x.name)+'" loading="lazy" referrerpolicy="no-referrer" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display=\'none\';this.parentElement.innerHTML=\'<div style=\'height:100%;display:grid;place-items:center;font-size:64px\'>🌾</div>\'"></div><div style="padding:15px"><div class="small muted">'+amEsc(x.category)+'</div><h3 style="margin:5px 0 8px">'+amEsc(x.name)+'</h3><p class="small muted">'+amEsc(x.description)+'</p><button class="btn btn-sm btn-primary" data-ft200="'+amEsc(x.name)+'">View type</button></div></article>').join(""):'<div class="empty" style="grid-column:1/-1">No farming type found.</div>';
+      if(grid) grid.innerHTML=hits.length?hits.map(ftCard).join(""):'<div class="empty" style="grid-column:1/-1">No farming type found.</div>';
       if(badge) badge.textContent="Search results: "+hits.length+" / "+all.length;
-      bindFt200Buttons();
+      bindFt200Buttons(); ftLoadImages();
     };
-    bindFt200Buttons();
+    bindFt200Buttons(); ftLoadImages();
   }
   function bindFt200Buttons(){
     document.querySelectorAll("[data-ft200]").forEach(b=>b.onclick=function(){
