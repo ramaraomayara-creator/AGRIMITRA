@@ -16,9 +16,16 @@
     return String(place||"").replace(/,\s*(AP|Andhra Pradesh|TS|Telangana|TN|Tamil Nadu|MP|Madhya Pradesh|MH|Maharashtra)$/i,"").trim();
   }
   async function amJSON(url){
-    const res=await fetch(url,{headers:{Accept:"application/json"}});
-    if(!res.ok) throw new Error("HTTP_"+res.status);
-    return res.json();
+    const ctrl=new AbortController();
+    const timer=setTimeout(()=>ctrl.abort(),12000);
+    try{
+      const res=await fetch(url,{headers:{Accept:"application/json"},mode:"cors",signal:ctrl.signal,cache:"no-store"});
+      if(!res.ok) throw new Error("HTTP_"+res.status);
+      return await res.json();
+    }catch(e){
+      if(e && e.name==="AbortError") throw new Error("TIMEOUT");
+      throw e;
+    }finally{ clearTimeout(timer); }
   }
   function amWeatherIcon(code){
     if(code===0) return "☀️";
@@ -81,7 +88,7 @@
         +'<div class="section-title"><h2>Farm weather checks</h2></div><div class="card"><ul>'+advice.map(amEsc).map(x=>'<li>'+x+'</li>').join("")+'</ul></div>';
       store.set("location",place);
     }catch(e){
-      out.innerHTML='<div class="alert"><b>Live weather unavailable.</b> '+amEsc(e.message==="PLACE_NOT_FOUND"?"Place not found. Try a city or district name.":"Please check your connection and try again.")+'<br><button class="btn btn-sm" id="wRetry">Try again</button></div>';
+      out.innerHTML='<div class="alert"><b>Live weather unavailable.</b> '+amEsc(e.message==="PLACE_NOT_FOUND"?"Place not found. Try a city or district name.":e.message==="TIMEOUT"?"Weather service took too long to respond. Please try again.":"Weather service could not be reached. Please check your internet connection and try again.")+'<br><button class="btn btn-sm" id="wRetry">Try again</button></div>';
       const r=document.getElementById("wRetry"); if(r) r.onclick=()=>amLoadWeather(place);
     }
   }
