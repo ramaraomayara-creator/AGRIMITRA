@@ -1,7 +1,7 @@
 "use strict";
 /* Loads the existing frontend data files once at boot (no duplication):
  * js/data.js, src/data/crops.js, farmingTypes.js, fertilizers.js,
- * paddyVarieties.js, seedVarieties.js — evaluated in a sandbox with window={}. */
+ * paddyVarieties.js — evaluated in a sandbox with window={}. Seed data is optional. */
 const fs = require("fs");
 const path = require("path");
 const vm = require("vm");
@@ -14,7 +14,6 @@ const FILES = [
   "src/data/farmingTypes.js",
   "src/data/fertilizers.js",
   "src/data/paddyVarieties.js",
-  "src/data/seedVarieties.js",
   "js/fertImages.js",
 ];
 let W = null;
