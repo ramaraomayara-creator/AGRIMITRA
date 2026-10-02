@@ -19,7 +19,7 @@ routes.push({
     services: {
       market: cfg.marketApiKey ? "configured" : "unavailable",
       images: "configured",
-      weather: cfg.weatherApiKey ? "configured" : "unavailable",
+      weather: "configured (Open-Meteo, keyless)",
     },
   }),
 });
@@ -29,5 +29,5 @@ require("./routes/weather.routes").register(routes, cfg);
 require("./routes/images.routes").register(routes, cfg);
 createApp(cfg, routes).listen(cfg.port, () => {
   logger.info(`AgriMitra backend on http://localhost:${cfg.port}`);
-  logger.info(`market=${cfg.marketApiKey ? "configured" : "NOT configured (set DATA_GOV_API_KEY)"} weather=${cfg.weatherApiKey ? "configured" : "NOT configured"} images=commons (keyless)`);
+  logger.info(`market=${cfg.marketApiKey ? "configured" : "NOT configured (set DATA_GOV_API_KEY)"} weather=Open-Meteo (keyless) images=commons (keyless)`);
 });
