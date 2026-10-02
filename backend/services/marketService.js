@@ -139,14 +139,56 @@ async function getPrices(cfg, f) {
     let dataDate=""; records.forEach(r=>{if(r.arrivalDate>dataDate)dataDate=r.arrivalDate;});
     return {records,total:parseInt(body.total||records.length,10)||records.length,dataDate,fetchedAt:new Date().toISOString(),source:"Government OGD / data.gov.in",sourceUrl:DATASET_PAGE,isLive:true,cached:false};
   });
-  if (cfg.cedaApiKey) sources.push(async()=> {
-    const body=await fetchJson((cfg.cedaApiUrl||"https://api.ceda.ashoka.edu.in").replace(/\/$/,"")+"/agmarknet/prices",{
-      method:"POST",headers:{Authorization:"Bearer "+cfg.cedaApiKey,"Content-Type":"application/json",Accept:"application/json"},
-      body:{commodity:f.commodity,state:f.state,district:f.district,start_date:f.arrival_date,end_date:f.arrival_date,calculation_type:"d",chart_type:"datadownload"}
+  /* CEDA public Agri-Market API: use numeric IDs and the /api/prices contract. */
+  sources.push(async()=> {
+    const base=(cfg.cedaPublicApiUrl||"https://agmarknet.ceda.ashoka.edu.in/api").replace(/\/$/,"");
+    const list=async(path)=> {
+      const b=await fetchJson(base+path,{headers:{Accept:"application/json"}});
+      return Array.isArray(b?.data)?b.data:Array.isArray(b)?b:flattenMarketObjects(b);
+    };
+    const label=x=>String(x?.name??x?.commodity??x?.state??x?.district??x?.title??x?.label??"").trim();
+    const id=x=>x?.id??x?.commodity_id??x?.state_id??x?.district_id;
+    const commodities=await list("/commodities");
+    const wantedCommodity=String(f.commodity||"").trim().toLowerCase();
+    if(!wantedCommodity) throw Object.assign(new Error("CEDA requires a commodity"),{code:"INVALID_PARAMETER"});
+    const cm=commodities.find(x=>label(x).toLowerCase()===wantedCommodity)||commodities.find(x=>label(x).toLowerCase().includes(wantedCommodity));
+    if(!cm || id(cm)==null) throw Object.assign(new Error("CEDA commodity not found"),{code:"INVALID_PARAMETER"});
+    const geographies=await list("/geographies");
+    const wantedState=String(f.state||"").trim().toLowerCase();
+    const sm=wantedState ? (geographies.find(x=>label(x).toLowerCase()===wantedState)||geographies.find(x=>label(x).toLowerCase().includes(wantedState))) : null;
+    const stateId=sm ? Number(id(sm)) : 0;
+    if(wantedState && !stateId) throw Object.assign(new Error("CEDA state not found"),{code:"INVALID_PARAMETER"});
+    let districtId=0;
+    if(f.district){
+      const wantedDistrict=String(f.district).trim().toLowerCase();
+      const dm=geographies.find(x=>label(x).toLowerCase()===wantedDistrict)||geographies.find(x=>label(x).toLowerCase().includes(wantedDistrict));
+      districtId=dm ? Number(id(dm)) : 0;
+      if(!districtId) throw Object.assign(new Error("CEDA district not found"),{code:"INVALID_PARAMETER"});
+    }
+    const end=f.arrival_date||new Date().toISOString().slice(0,10);
+    const start=f.arrival_date||new Date(Date.now()-30*86400000).toISOString().slice(0,10);
+    const body=await fetchJson(base+"/prices",{
+      method:"POST",
+      headers:{"Content-Type":"application/json",Accept:"application/json"},
+      body:{commodity_id:Number(id(cm)),state_id:stateId,district_id:districtId,calculation_type:"d",start_date:start,end_date:end}
     });
-    const records=flattenMarketObjects(body).map(normalize).filter(r=>r.commodity&&(r.modalPrice!==null||r.minPrice!==null||r.maxPrice!==null));
+    const raw=Array.isArray(body?.data)?body.data:[];
+    const records=raw.map(r=>({
+      commodity:f.commodity||r.cmdty||r.commodity||"",variety:r.variety||"",grade:r.grade||"",
+      state:f.state||"",district:f.district||"",market:r.market||"",arrivalDate:r.t||r.date||"",
+      minPrice:num(r.p_min),maxPrice:num(r.p_max),modalPrice:num(r.p_modal),unit:"Quintal",
+      unitNote:"CEDA Agri-Market Data reports mandi prices in rupees per quintal.",
+      source:"CEDA Agri Market Data",sourceUrl:"https://agmarknet.ceda.ashoka.edu.in/",isLive:false,fetchedAt:new Date().toISOString()
+    })).filter(r=>r.commodity&&(r.modalPrice!==null||r.minPrice!==null||r.maxPrice!==null));
     if(!records.length) throw Object.assign(new Error("CEDA returned no records"),{code:"NO_RECORDS"});
-    return {records,total:records.length,dataDate:f.arrival_date||"",fetchedAt:new Date().toISOString(),source:"CEDA Agri Market Data",sourceUrl:"https://agmarknet.ceda.ashoka.edu.in/",isLive:false,cached:false};
+    return {records,total:records.length,dataDate:records.reduce((m,r)=>r.arrivalDate>m?r.arrivalDate:m,""),fetchedAt:new Date().toISOString(),source:"CEDA Agri Market Data",sourceUrl:"https://agmarknet.ceda.ashoka.edu.in/",isLive:false,cached:false};
+  });
+  /* Free Mandi fallback belongs inside getPrices; the old code was outside the function. */
+  sources.push(async()=> {
+    if(f.state && !["maharashtra","uttar pradesh","punjab","madhya pradesh","karnataka"].some(s=>String(f.state).toLowerCase().includes(s))){
+      throw Object.assign(new Error("Free Mandi API does not cover this state"),{code:"NOT_CONFIGURED"});
+    }
+    return getFreeMandiApiPrices(cfg,f);
   });
   let last;
   for(const source of sources){try{const out=await source();cache.set(key,out,cfg.cacheTtlMs);return out;}catch(e){last=e;logger.warn("market source failed",{code:e&&e.code,message:e&&e.message});}}
