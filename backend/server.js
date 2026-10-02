@@ -17,7 +17,7 @@ routes.push({
   fn: async (req, res) => sendJson(res, 200, {
     status: "ok", service: "AgriMitra Backend", timestamp: new Date().toISOString(),
     services: {
-      market: cfg.marketApiKey ? "configured" : "unavailable",
+      market: "AGMARKNET 2.0 → OGD → CEDA fallback chain",
       images: "configured",
       weather: "configured (Open-Meteo, keyless)",
     },
@@ -29,5 +29,5 @@ require("./routes/weather.routes").register(routes, cfg);
 require("./routes/images.routes").register(routes, cfg);
 createApp(cfg, routes).listen(cfg.port, () => {
   logger.info(`AgriMitra backend on http://localhost:${cfg.port}`);
-  logger.info(`market=${cfg.marketApiKey ? "configured" : "NOT configured (set DATA_GOV_API_KEY)"} weather=Open-Meteo (keyless) images=commons (keyless)`);
+  logger.info(`market=AGMARKNET 2.0 primary; OGD/CEDA optional fallbacks weather=Open-Meteo (keyless) images=commons (keyless)`);
 });
