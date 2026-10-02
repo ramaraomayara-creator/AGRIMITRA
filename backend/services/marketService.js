@@ -108,7 +108,9 @@ async function getPrices(cfg, f) {
   let last;
   for(const source of sources){try{const out=await source();cache.set(key,out,cfg.cacheTtlMs);return out;}catch(e){last=e;logger.warn("market source failed",{code:e&&e.code,message:e&&e.message});}}
   const e=new Error("All market sources are unavailable");e.code=last?.code||"UPSTREAM_UNAVAILABLE";throw e;
-}\n\nasync function getMarkets(cfg, f) {
+}
+
+async function getMarkets(cfg, f) {
   /* Distinct markets derived from real records only — contacts never invented. */
   const res = await getPrices(cfg, { limit: 500, offset: 0, state: f.state, district: f.district });
   const map = new Map();
