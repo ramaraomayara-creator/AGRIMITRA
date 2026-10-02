@@ -150,7 +150,7 @@ async function getPrices(cfg, f) {
     const id=x=>x?.id??x?.commodity_id??x?.state_id??x?.district_id;
     const commodities=await list("/commodities");
     const wantedCommodity=String(f.commodity||"").trim().toLowerCase();
-    if(!wantedCommodity) throw Object.assign(new Error("CEDA requires a commodity"),{code:"INVALID_PARAMETER"});
+    if(!wantedCommodity) throw Object.assign(new Error("CEDA skipped: commodity filter is required"),{code:"NOT_CONFIGURED"});
     const cm=commodities.find(x=>label(x).toLowerCase()===wantedCommodity)||commodities.find(x=>label(x).toLowerCase().includes(wantedCommodity));
     if(!cm || id(cm)==null) throw Object.assign(new Error("CEDA commodity not found"),{code:"INVALID_PARAMETER"});
     const geographies=await list("/geographies");
@@ -215,10 +215,4 @@ async function getMarkets(cfg, f) {
   });
   return { markets: [...map.values()], isLive: true, cached: !!res.cached, fetchedAt: res.fetchedAt, source: res.source, sourceUrl: res.sourceUrl };
 }
-module.exports = { getPrices, getMarkets };  sources.push(async () => {
-    if (f.state && !["maharashtra","uttar pradesh","punjab","madhya pradesh","karnataka"].some(s => String(f.state).toLowerCase().includes(s))) {
-      throw Object.assign(new Error("Free Mandi API does not cover this state"), {code:"NOT_CONFIGURED"});
-    }
-    return getFreeMandiApiPrices(cfg, f);
-  });
-
+module.exports = { getPrices, getMarkets };
