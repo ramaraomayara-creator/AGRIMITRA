@@ -481,7 +481,7 @@ function mkStatusHTML(){
   if(s.status==="loading") return '<p><span class="badge blue">… Loading</span></p><p class="muted">Contacting the market data service…</p>';
   if(s.status==="live") return '<p><b>🟢 LIVE API MARKET DATA</b></p><p class="small">Fetched: <b>'+esc(mkWhen(s.meta.fetchedAt))+'</b> • Latest record date: <b>'+esc(s.meta.dataDate||"—")+'</b><br>Source: '+esc(s.meta.source||"Government market API")+'</p>';
   if(s.status==="cached") return '<p><b>🟡 Cached Verified Data</b></p><p class="small">Live market data temporarily unavailable. Showing last verified market data.<br>Last Updated: <b>'+esc(mkWhen(s.meta.fetchedAt))+'</b></p>';
-  if(s.status==="demo") return '<p><b>🔵 Verified Reference Data (sample)</b></p><p class="small">Backend unreachable — showing built-in sample records for layout only. These are <b>not</b> live prices.<br><button class="btn btn-sm" id="mkRetry">Try live again</button></p>';
+  if(s.status==="demo") return '<p><b>🔴 Live Market API Unavailable</b></p><p class="small">No demo or sample market prices are shown. Connect the market backend/API to display verified current mandi records.</p><button class="btn btn-sm" id="mkRetry">Try live again</button>';
   return '<p><b>🔴 Data Unavailable</b></p><p>'+esc(s.err||"Market data could not be loaded right now. Please try again later.")+'</p><button class="btn btn-sm" id="mkRetry">Try again</button>';
 }
 function mkPaintStatus(){
@@ -568,7 +568,7 @@ function mkShowDetail(i){
 }
 function mkLoad(force){
   const s=mkS();
-  if(!window.Api){ s.status="demo"; s.records=mkDemoRows(); mkPaintAll(); return; }
+  if(!window.Api){ s.status="error"; s.records=[]; s.meta={}; s.err="Live market API is not connected. Demo market data has been disabled."; mkPaintAll(); return; }
   s.status="loading"; s.err=""; mkPaintStatus(); mkPaintTable();
   const rb=document.getElementById("mkRefresh"); if(rb){ rb.disabled=true; rb.textContent="↻ Loading…"; }
   if(force && window.Api.clearCache) Api.clearCache();
@@ -583,8 +583,10 @@ function mkLoad(force){
       s.records=[]; s.meta={fetchedAt:r.data.fetchedAt,dataDate:""}; s.status="error"; s.err="No verified data found for this request.";
     } else {
       const code=(r&&r.code)||"NETWORK_ERROR";
-      if(code==="NOT_CONFIGURED"){ s.status="demo"; s.records=mkDemoRows(); s.meta={}; }
-      else { s.status="error"; s.err="Market data could not be loaded right now. Please try again later."; }
+      s.status="error"; s.records=[]; s.meta={};
+      s.err=code==="NOT_CONFIGURED"
+        ? "Live market API is not configured. No demo prices are shown."
+        : "Live market data could not be loaded right now. Please try again.";
     }
     mkPaintAll();
     const rb2=document.getElementById("mkRefresh"); if(rb2){ rb2.disabled=false; rb2.textContent="↻ Refresh Prices"; }
