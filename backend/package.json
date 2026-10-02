@@ -1,0 +1,15 @@
+{
+  "name": "agrimitra-backend",
+  "version": "1.0.0",
+  "description": "AgriMitra backend — zero-dependency Node.js REST API + static frontend host",
+  "main": "server.js",
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "start": "node server.js",
+    "server": "node server.js",
+    "dev": "node --watch server.js",
+    "build": "echo \"No build step: vanilla frontend + dependency-free backend\""
+  },
+  "dependencies": {},
+  "license": "MIT"
+}

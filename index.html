@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AgriMitra — Smart Farming Assistant for Every Farmer</title>
+<meta name="description" content="AgriMitra: crop info, farming types, weather, market, seeds, fertilizers, soil, irrigation, schemes, calculators for Indian farmers. No login needed." />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌾</text></svg>" />
+<link rel="stylesheet" href="css/style.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans:wght@400;600;700&display=swap" rel="stylesheet" />
+</head>
+<body>
+<header class="topbar">
+  <div class="container topbar-inner">
+    <a class="brand" href="#/home" data-nav="home">
+      <span class="brand-logo">🌾</span>
+      <span class="brand-text"><strong>AgriMitra</strong><small>Smart Farming Assistant for Every Farmer</small></span>
+    </a>
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input id="globalSearch" type="search" placeholder="Search crops, farming methods, diseases, markets..." autocomplete="off" />
+      <div id="searchSuggest" class="search-suggest hidden"></div>
+    </div>
+    <div class="top-actions">
+      <select id="langSelect" aria-label="Language">
+        <option value="en">English</option>
+        <option value="hi">हिंदी</option>
+        <option value="te">తెలుగు</option>
+        <option value="ta">தமிழ்</option>
+      </select>
+      <a href="#/dashboard" class="btn btn-primary" data-nav="dashboard">📊 My Farm</a>
+      <button id="menuBtn" class="menu-btn" aria-label="Menu">☰</button>
+    </div>
+  </div>
+  <nav class="mainnav" id="mainNav">
+    <div class="container nav-links">
+      <a href="#/home" data-nav="home">Home</a>
+      <a href="#/farming-types" data-nav="farming-types">Farming Types</a>
+      <a href="#/crops" data-nav="crops">Crops</a>
+      <a href="#/market" data-nav="market">Market</a>
+      <a href="#/weather" data-nav="weather">Weather</a>
+      <a href="#/seeds" data-nav="seeds">Seeds</a>
+      <a href="#/soil" data-nav="soil">Soil</a>
+      <a href="#/diseases" data-nav="diseases">Diseases</a>
+      <a href="#/calculators" data-nav="calculators">Calculators</a>
+      <a href="#/schemes" data-nav="schemes">Schemes</a>
+      <a href="#/guide" data-nav="guide" class="more-link">Guide</a>
+      <a href="#/irrigation" data-nav="irrigation" class="more-link">Irrigation</a>
+      <a href="#/fertilizers" data-nav="fertilizers" class="more-link">Fertilizers</a>
+      <a href="#/calendar" data-nav="calendar" class="more-link">Calendar</a>
+    </div>
+  </nav>
+</header>
+
+<div id="demoBanner" class="demo-banner">ℹ️ Demo Data: market & weather shown are illustrative samples. Verify with APMC / IMD before decisions. <button onclick="document.getElementById('demoBanner').style.display='none'">✕</button></div>
+
+<main id="app" class="container"></main>
+
+<footer class="footer">
+  <div class="container footer-grid">
+    <div>
+      <h4>🌾 AgriMitra</h4>
+      <p>Smart Farming Assistant for Every Farmer. Built for small & marginal farmers of India. No login required.</p>
+      <p class="muted">Helpline: 1800-180-1551 (Kisan Call Centre) • Email: support@agrimitra.in</p>
+    </div>
+    <div>
+      <h4>Explore</h4>
+      <a href="#/crops">Crop Information</a><a href="#/farming-types">Farming Types</a><a href="#/market">Market</a><a href="#/weather">Weather</a><a href="#/calendar">Farming Calendar</a>
+    </div>
+    <div>
+      <h4>Support</h4>
+      <a href="#/seeds">Seeds</a><a href="#/fertilizers">Fertilizers</a><a href="#/soil">Soil Health</a><a href="#/irrigation">Irrigation</a><a href="#/diseases">Pest & Diseases</a>
+    </div>
+    <div>
+      <h4>Official Links</h4>
+      <a href="https://pmkisan.gov.in" target="_blank" rel="noopener">PM-KISAN</a>
+      <a href="https://pmfby.gov.in" target="_blank" rel="noopener">PMFBY Crop Insurance</a>
+      <a href="https://soilhealth.dac.gov.in" target="_blank" rel="noopener">Soil Health Card</a>
+      <a href="https://agmarknet.gov.in" target="_blank" rel="noopener">AGMARKNET Prices</a>
+      <a href="https://mausam.imd.gov.in" target="_blank" rel="noopener">IMD Weather</a>
+    </div>
+  </div>
+  <div class="footer-bottom">© 2026 AgriMitra • For guidance only — verify market prices with APMC & advisories with local agriculture officer. • Made for Indian Farmers 🇮🇳</div>
+</footer>
+
+<nav class="bottomnav">
+  <a href="#/home" data-nav="home">🏠<span>Home</span></a>
+  <a href="#/crops" data-nav="crops">🌱<span>Crops</span></a>
+  <a href="#/market" data-nav="market">🧺<span>Market</span></a>
+  <a href="#/weather" data-nav="weather">🌦️<span>Weather</span></a>
+  <a href="#/dashboard" data-nav="dashboard">📊<span>My Farm</span></a>
+</nav>
+
+<script src="js/data.js"></script>
+<script src="src/data/crops.js"></script>
+<script src="src/data/paddyVarieties.js"></script>
+<script src="src/data/fertilizers.js"></script>
+<script src="src/data/farmingTypes.js"></script>
+<script src="shared/fertAliases.js"></script>
+<script src="js/api.js"></script>
+<script src="js/fertImages.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
