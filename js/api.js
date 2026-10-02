@@ -3,7 +3,7 @@
  * window.AGRIMITRA_API_BASE = "http://localhost:5000" when served separately.
  * Every call resolves to {ok, data} or {ok:false, code} — never throws. */
 (function () {
-  var BASE = (window.AGRIMITRA_API_BASE || "").replace(/\/$/, "");
+  var BASE = (window.AGRIMITRA_API_BASE || "https://agrimitra-ramarao-api.onrender.com").replace(/\/$/, "");
   var mem = {};
   var TTL = 5 * 60 * 1000;
   function url(p) { return BASE + p; }
