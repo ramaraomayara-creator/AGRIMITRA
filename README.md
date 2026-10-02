@@ -5,7 +5,7 @@ No login. Direct access. For Indian small & marginal farmers. Green agriculture 
 ## 1. Project overview
 Vanilla-JS single-page frontend (`index.html` + `css/` + `js/` + `src/data/`, hash routes, no build step)
 plus a dependency-free Node.js 18+ REST backend (`backend/`) that serves the site and proxies
-live government/meteo/image data with caching. No database — catalog data is bridged from the
+government mandi data and keyless Open-Meteo weather/image data with caching. No database — catalog data is bridged from the
 existing verified frontend data files at backend boot.
 
 ## 2. Frontend setup
@@ -31,7 +31,7 @@ Frontend override (only when served apart from backend): `window.AGRIMITRA_API_B
 - **Market:** data.gov.in dataset “Current Daily Price … (Mandi)”, resource `9ef84268-d588-465a-a308-a864a43d0070`,
   called server-side with key + `filters[state|district|market|commodity|variety|arrival_date]`, `limit`, `offset`.
 - **Images:** Wikimedia Commons API (keyless) — query only, attribution preserved.
-- **Weather:** OpenWeather-compatible base (`/weather` + `/forecast`); replace base URL for IMD/mausam.
+- **Weather:** Open-Meteo keyless forecast/current API; no weather API key is required for the free non-commercial API. Open-Meteo is a forecast source, not an official IMD advisory.
 
 ## 9–11. Running / production
 - Frontend alone: open `index.html` (see §2). Backend: `node server.js` (or `npm start`, `npm run dev` with `--watch`).
@@ -41,7 +41,7 @@ Frontend override (only when served apart from backend): `window.AGRIMITRA_API_B
   `/api/weather`, `/api/images/search?query=`.
 
 ## 12. Troubleshooting
-- Market shows sample/“unavailable”: set `DATA_GOV_API_KEY` and restart; check `/api/health`.
+- Market shows sample/“unavailable”: set `DATA_GOV_API_KEY` in the backend `.env` and restart; check `/api/health`. Weather is keyless through Open-Meteo.
 - Images stay generic: needs internet (Commons) — otherwise current images remain.
 - Port busy: change `PORT`. No Node? Install Node 18+ LTS (no npm packages needed).
 
