@@ -209,6 +209,7 @@
       return ftImageCache[key];
     }
   }
+  function ftImg(x){ return ftImageCache[String(x.name||"").toLowerCase()] || ftFallback(); }
   function ftCard(x){
     return '<article class="card" style="overflow:hidden;padding:0;display:flex;flex-direction:column">'
       +'<div style="height:175px;background:#eef6ed;overflow:hidden;position:relative"><img data-ftimg="'+amEsc(x.name)+'" src="'+ftFallback()+'" alt="'+amEsc(x.name)+'" loading="lazy" style="width:100%;height:100%;object-fit:cover"></div>'
@@ -260,7 +261,8 @@
       if(existing&&typeof ftDetailPage==="function"){ftDetailPage(existing.name);bindCards();window.scrollTo(0,0);return;}
       const app=document.getElementById("app");
       if(!app||!match)return;
-      app.innerHTML='<div class="section-title"><h2>🌾 '+amEsc(match.name)+'</h2><a class="btn btn-sm" href="#/farming-types">← Back to Farming Types</a></div><div class="grid g2"><div class="card"><img src="'+ftImg(match)+'" alt="'+amEsc(match.name)+'" style="width:100%;max-height:420px;object-fit:cover;border-radius:12px" onerror="this.style.display=\'none\'"><h3 style="margin-top:14px">'+amEsc(match.name)+'</h3><p class="muted">'+amEsc(match.description)+'</p></div><div class="card"><h3>About this type</h3><p><b>Category:</b> '+amEsc(match.category)+'</p><p>This entry is a general farming-type reference. Suitability, crop choice, input rates and local practices should be checked against your soil, climate, water availability and local agricultural guidance.</p><a class="btn btn-primary" href="#/farming-types">Explore other types</a></div></div>';
+      app.innerHTML='<div class="section-title"><h2>🌾 '+amEsc(match.name)+'</h2><a class="btn btn-sm" href="#/farming-types">← Back to Farming Types</a></div><div class="grid g2"><div class="card"><img src="'+ftImg(match)+'" data-ftdetail="1" alt="'+amEsc(match.name)+'" style="width:100%;max-height:420px;object-fit:cover;border-radius:12px" onerror="this.style.display=\'none\'"><h3 style="margin-top:14px">'+amEsc(match.name)+'</h3><p class="muted">'+amEsc(match.description)+'</p></div><div class="card"><h3>About this type</h3><p><b>Category:</b> '+amEsc(match.category)+'</p><p>This entry is a general farming-type reference. Suitability, crop choice, input rates and local practices should be checked against your soil, climate, water availability and local agricultural guidance.</p><a class="btn btn-primary" href="#/farming-types">Explore other types</a></div></div>';
+      ftFindImage(match).then(src=>{const im=app.querySelector('img[data-ftdetail]');if(im) im.src=src;});
       window.scrollTo(0,0);
     });
   }
