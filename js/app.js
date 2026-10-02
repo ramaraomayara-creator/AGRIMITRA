@@ -469,7 +469,7 @@ function pageMarket(q, comm){
   +'<input id="mDate" placeholder="Date (e.g. 26/09/2026)" aria-label="Date">'
   +'<input id="mSearch" placeholder="Search crop or market..." value="'+esc(comm)+'" aria-label="Search" style="flex:1;min-width:200px"></div>'
   +'<p class="muted small" id="mkCount"></p>'
-  +'<div class="table-wrap"><table><thead><tr><th>Commodity</th><th>Variety</th><th>Market</th><th>District</th><th>State</th><th>Min</th><th>Max</th><th>Modal</th><th>Unit</th><th>Arrival Date</th><th>Status</th><th></th></tr></thead><tbody id="mkBody"><tr><td colspan="12" style="text-align:center">Loading…</td></tr></tbody></table></div>'
+  +'<div class="table-wrap market-table-wrap"><table class="market-table"><thead><tr><th>Crop / Commodity</th><th>Variety</th><th>Market / APMC</th><th>District</th><th>State</th><th>Min Price</th><th>Max Price</th><th>Modal Price</th><th>Unit</th><th>Arrival Date</th><th>API Status</th><th>Market Full Details</th></tr></thead><tbody id="mkBody"><tr><td colspan="12" style="text-align:center">Loading…</td></tr></tbody></table></div>'
   +'<p class="muted small">* The Government dataset publishes minimum, maximum and modal prices by market/commodity/variety/date. Check the record date and unit before using a price for a sale decision.</p>'
   +'<div id="mkDetail" style="margin-top:12px"></div>'
   +'<div class="section-title"><h2>Modal price comparison</h2></div><div id="mkChart"><p class="muted">Chart appears with live records.</p></div>'
@@ -479,7 +479,7 @@ function pageMarket(q, comm){
 function mkStatusHTML(){
   const s=mkS();
   if(s.status==="loading") return '<p><span class="badge blue">… Loading</span></p><p class="muted">Contacting the market data service…</p>';
-  if(s.status==="live") return '<p><b>🟢 Government API Data</b></p><p class="small">Fetched: <b>'+esc(mkWhen(s.meta.fetchedAt))+'</b> • Latest record date: <b>'+esc(s.meta.dataDate||"—")+'</b><br>Source: Government of India Open Government Data Platform</p>';
+  if(s.status==="live") return '<p><b>🟢 LIVE API MARKET DATA</b></p><p class="small">Fetched: <b>'+esc(mkWhen(s.meta.fetchedAt))+'</b> • Latest record date: <b>'+esc(s.meta.dataDate||"—")+'</b><br>Source: '+esc(s.meta.source||"Government market API")+'</p>';
   if(s.status==="cached") return '<p><b>🟡 Cached Verified Data</b></p><p class="small">Live market data temporarily unavailable. Showing last verified market data.<br>Last Updated: <b>'+esc(mkWhen(s.meta.fetchedAt))+'</b></p>';
   if(s.status==="demo") return '<p><b>🔵 Verified Reference Data (sample)</b></p><p class="small">Backend unreachable — showing built-in sample records for layout only. These are <b>not</b> live prices.<br><button class="btn btn-sm" id="mkRetry">Try live again</button></p>';
   return '<p><b>🔴 Data Unavailable</b></p><p>'+esc(s.err||"Market data could not be loaded right now. Please try again later.")+'</p><button class="btn btn-sm" id="mkRetry">Try again</button>';
@@ -517,12 +517,33 @@ function mkPaintTable(){
   if(s.status==="loading"){ body.innerHTML='<tr><td colspan="12" style="text-align:center">Loading…</td></tr>'; return; }
   if(s.status==="error"){ body.innerHTML='<tr><td colspan="12" style="text-align:center;color:var(--muted)">No data — see status above.</td></tr>'; document.getElementById("mkCount").textContent=""; return; }
   const rows=mkFiltered(), vis=rows.slice(0,100);
-  const tag = s.status==="live"?'<span class="badge">GOVT DATA</span>':(s.status==="cached"?'<span class="badge amber">CACHED VERIFIED DATA</span>':'<span class="badge demo">REFERENCE / UNAVAILABLE</span>');
-  document.getElementById("mkCount").textContent = rows.length?("Showing "+vis.length+" of "+rows.length+" records"):"";
-  body.innerHTML = rows.length? vis.map(r=>{ const i=s.records.indexOf(r);
-    return '<tr><td><b>'+esc(r.commodity)+'</b></td><td>'+esc(r.variety||"—")+'</td><td>'+esc(r.market)+'</td><td>'+esc(r.district)+'</td><td>'+esc(r.state)+'</td><td>'+mkRs(r.minPrice)+'</td><td>'+mkRs(r.maxPrice)+'</td><td><b>'+mkRs(r.modalPrice)+'</b></td><td>'+esc(r.unit||"Quintal*")+'</td><td>'+esc(r.date)+'</td><td>'+tag+'</td><td><button class="btn btn-sm" data-mk="'+i+'">View Market Details</button></td></tr>';
-  }).join("") : '<tr><td colspan="12" style="text-align:center;color:var(--muted)">No market data available for this selection.</td></tr>';
-  body.querySelectorAll("[data-mk]").forEach(b=>b.onclick=()=>mkShowDetail(+b.dataset.mk));
+  const tag = s.status==="live"
+    ? '<span class="badge live-api-badge">LIVE API</span>'
+    : (s.status==="cached"
+      ? '<span class="badge amber">CACHED</span>'
+      : '<span class="badge demo">UNAVAILABLE</span>');
+  document.getElementById("mkCount").textContent = rows.length
+    ? ("Showing "+vis.length+" of "+rows.length+" records • Latest available API records")
+    : "";
+  body.innerHTML = rows.length ? vis.map(r=>{ const i=s.records.indexOf(r);
+    const src=String(r.source||s.meta.source||"Market API");
+    const live=r.isLive!==false && s.status==="live";
+    const statusTag=live ? tag : '<span class="badge blue">'+esc(src.length>22?src.slice(0,22)+"…":src)+'</span>';
+    return '<tr>'
+      +'<td><b>'+esc(r.commodity||"—")+'</b></td>'
+      +'<td>'+esc(r.variety||"—")+'</td>'
+      +'<td><b>'+esc(r.market||"—")+'</b></td>'
+      +'<td>'+esc(r.district||"—")+'</td>'
+      +'<td>'+esc(r.state||"—")+'</td>'
+      +'<td>'+mkRs(r.minPrice)+'</td>'
+      +'<td>'+mkRs(r.maxPrice)+'</td>'
+      +'<td><b class="modal-price">'+mkRs(r.modalPrice)+'</b></td>'
+      +'<td>'+esc(r.unit||"Quintal")+'</td>'
+      +'<td>'+esc(r.date||"—")+'</td>'
+      +'<td>'+statusTag+'</td>'
+      +'<td><button class="btn btn-sm market-detail-btn" data-mk="'+i+'">Market Full Details</button></td>'
+      +'</tr>';
+  }).join("") : '<tr><td colspan="12" style="text-align:center;color:var(--muted);padding:24px">No market data available for this selection.</td></tr>';
   const ch=document.getElementById("mkChart");
   if(ch){ const top=rows.filter(r=>r.modalPrice!=null).slice(0,8);
     ch.innerHTML = top.length? barChart(top.map(r=>String(r.commodity).split(" ")[0]+"@"+String(r.market).split(" ")[0]), top.map(r=>r.modalPrice)) : '<p class="muted">Chart appears with live records.</p>'; }
@@ -531,13 +552,18 @@ function mkShowDetail(i){
   const s=mkS(), r=s.records[i]; if(!r) return;
   const same=s.records.filter(x=>x.market===r.market).slice(0,12);
   const comms=mkUniq(s.records.filter(x=>x.market===r.market).map(x=>x.commodity));
-  document.getElementById("mkDetail").innerHTML='<div class="grid g2"><div class="card"><h3>'+esc(r.market)+'</h3>'
-  +'<dl class="kv"><dt>District</dt><dd>'+esc(r.district)+'</dd><dt>State</dt><dd>'+esc(r.state)+'</dd><dt>Commodity</dt><dd>'+esc(r.commodity)+' ('+esc(r.variety||"—")+')</dd><dt>Latest modal price</dt><dd><b>'+mkRs(r.modalPrice)+'</b></dd><dt>Price range</dt><dd>'+mkRs(r.minPrice)+' – '+mkRs(r.maxPrice)+'</dd><dt>Last Updated</dt><dd>'+esc(r.date||s.meta.dataDate||"—")+'</dd></dl>'
-  +'<p class="muted small">Market contact/address is not published in this dataset — confirm timings with the district APMC or <a href="https://agmarknet.gov.in" target="_blank" rel="noopener">agmarknet.gov.in</a>.</p></div>'
-  +'<div class="card"><h3>Available commodities here ('+comms.length+')</h3><p class="small">'+comms.map(esc).join(", ")+'</p>'
-  +'<div class="table-wrap"><table style="min-width:0"><thead><tr><th>Commodity</th><th>Modal</th><th>Date</th></tr></thead><tbody>'
-  +same.map(x=>'<tr><td>'+esc(x.commodity)+'</td><td><b>'+mkRs(x.modalPrice)+'</b></td><td>'+esc(x.date)+'</td></tr>').join("")
-  +'</tbody></table></div></div></div>';
+  const source=String(r.source||s.meta.source||"Government market API");
+  const updated=String(r.fetchedAt||s.meta.fetchedAt||"");
+  document.getElementById("mkDetail").innerHTML='<div class="market-detail-card"><div class="section-title" style="margin-top:0"><h2>Market Full Details</h2><button class="btn btn-sm" id="mkCloseDetail">Close</button></div>'
+  +'<div class="grid g2"><div class="card market-detail-main"><h3>'+esc(r.market||"Market")+'</h3>'
+  +'<dl class="kv"><dt>Crop / Commodity</dt><dd><b>'+esc(r.commodity||"—")+'</b></dd><dt>Variety</dt><dd>'+esc(r.variety||"—")+'</dd><dt>Grade</dt><dd>'+esc(r.grade||"—")+'</dd><dt>District</dt><dd>'+esc(r.district||"—")+'</dd><dt>State</dt><dd>'+esc(r.state||"—")+'</dd><dt>Minimum Price</dt><dd>'+mkRs(r.minPrice)+'</dd><dt>Maximum Price</dt><dd>'+mkRs(r.maxPrice)+'</dd><dt>Modal Price</dt><dd><b class="modal-price">'+mkRs(r.modalPrice)+'</b></dd><dt>Unit</dt><dd>'+esc(r.unit||"Quintal")+'</dd><dt>Arrival Date</dt><dd>'+esc(r.date||s.meta.dataDate||"—")+'</dd><dt>API Source</dt><dd>'+esc(source)+'</dd><dt>Fetched At</dt><dd>'+esc(updated?mkWhen(updated):"—")+'</dd></dl>'
+  +'<p class="alert blue small">Market contact/address is not published in this price dataset. Confirm timings, arrivals and the latest sale price with the local APMC before selling.</p>'
+  +'<a class="btn btn-primary btn-sm" href="https://agmarknet.gov.in" target="_blank" rel="noopener">Open AGMARKNET</a></div>'
+  +'<div class="card"><h3>Other commodities in this market ('+comms.length+')</h3><p class="small">'+(comms.length?comms.map(esc).join(", "):"No additional commodities in the current result set.")+'</p>'
+  +'<div class="table-wrap"><table style="min-width:0"><thead><tr><th>Commodity</th><th>Variety</th><th>Modal</th><th>Date</th></tr></thead><tbody>'
+  +same.map(x=>'<tr><td>'+esc(x.commodity)+'</td><td>'+esc(x.variety||"—")+'</td><td><b>'+mkRs(x.modalPrice)+'</b></td><td>'+esc(x.date||"—")+'</td></tr>').join("")
+  +'</tbody></table></div></div></div></div>';
+  const close=document.getElementById("mkCloseDetail"); if(close) close.onclick=()=>{ const d=document.getElementById("mkDetail"); if(d) d.innerHTML=""; };
   document.getElementById("mkDetail").scrollIntoView({behavior:"smooth"});
 }
 function mkLoad(force){
@@ -551,8 +577,8 @@ function mkLoad(force){
   Object.keys(params).forEach(k=>params[k]===undefined&&delete params[k]);
   Api.marketPrices(params).then(r=>{
     if(r.ok && r.data && Array.isArray(r.data.records) && r.data.records.length){
-      s.records=r.data.records.map(x=>({commodity:x.commodity,variety:x.variety,grade:x.grade,market:x.market,district:x.district,state:x.state,minPrice:x.minPrice,maxPrice:x.maxPrice,modalPrice:x.modalPrice,unit:x.unit||"Quintal*",date:x.arrivalDate}));
-      s.meta={fetchedAt:r.data.fetchedAt,dataDate:r.data.dataDate}; s.status="live";
+      s.records=r.data.records.map(x=>({commodity:x.commodity,variety:x.variety,grade:x.grade,market:x.market,district:x.district,state:x.state,minPrice:x.minPrice,maxPrice:x.maxPrice,modalPrice:x.modalPrice,unit:x.unit||"Quintal",date:x.arrivalDate,source:x.source,isLive:x.isLive!==false,fetchedAt:x.fetchedAt||r.data.fetchedAt}));
+      s.meta={fetchedAt:r.data.fetchedAt,dataDate:r.data.dataDate,source:r.data.source,isLive:r.data.isLive!==false}; s.status="live";
     } else if(r.ok && r.data && Array.isArray(r.data.records)) {
       s.records=[]; s.meta={fetchedAt:r.data.fetchedAt,dataDate:""}; s.status="error"; s.err="No verified data found for this request.";
     } else {
@@ -561,7 +587,7 @@ function mkLoad(force){
       else { s.status="error"; s.err="Market data could not be loaded right now. Please try again later."; }
     }
     mkPaintAll();
-    const rb2=document.getElementById("mkRefresh"); if(rb2){ rb2.disabled=false; rb.textContent="↻ Refresh Prices"; }
+    const rb2=document.getElementById("mkRefresh"); if(rb2){ rb2.disabled=false; rb2.textContent="↻ Refresh Prices"; }
   });
 }
 function mkPaintAll(){ mkPaintStatus(); mkFillFacets(); mkPaintTable(); }
