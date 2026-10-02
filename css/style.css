@@ -146,3 +146,21 @@ th{background:var(--green-50);color:var(--green-900);position:sticky;top:0}
 .four-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
 @media(max-width:960px){.four-grid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:640px){.four-grid{grid-template-columns:1fr}}
+
+/* ---- Market: clear tabular live-price layout ---- */
+.market-table-wrap{margin-top:10px;box-shadow:var(--shadow)}
+.market-table{min-width:1180px;background:#fff}
+.market-table th{white-space:nowrap;font-size:13px;border-bottom:2px solid var(--line)}
+.market-table td{vertical-align:middle;white-space:nowrap}
+.market-table tbody tr:hover{background:#f8fcf8}
+.market-table .modal-price{color:var(--green-900);font-size:15px}
+.market-detail-btn{white-space:nowrap;border-color:var(--green-600);color:var(--green-900);background:#f3fbf4}
+.market-detail-btn:hover{background:var(--green-700);color:#fff}
+.live-api-badge{background:#d3f9d8;color:#14532d;border:1px solid #8ce99a}
+.market-detail-card{margin-top:14px;background:#f8fcf8;border:1px solid var(--line);border-radius:18px;padding:14px}
+.market-detail-main .kv dd{font-weight:500}
+.market-detail-card .table-wrap{margin-top:10px}
+@media(max-width:640px){
+  .market-detail-card{padding:10px}
+  .market-detail-card .section-title h2{font-size:19px}
+}
