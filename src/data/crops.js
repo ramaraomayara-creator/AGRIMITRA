@@ -152,6 +152,13 @@ var POOL = {
 var _n = 0;
 function C(id,name,sci,cat,temp,days,dur,season,soil,ph,water,rain,regions,seed,desc,pk,pnote,dk,dnote,harvest,imgkw){
   _n++;
+  /* Normalize legacy rows that omitted the disease-index array. */
+  if (!Array.isArray(dk)) {
+    imgkw = harvest;
+    harvest = dnote;
+    dnote = dk;
+    dk = [0,1];
+  }
   var T = POOL[cat];
   function P(k,note){ var e = T.pests[k]; return {name:e[0], symptoms:e[1]+(note?" "+note:""), prevention:e[2], monitoring:"Inspect the crop weekly from early growth; refresh pheromone and sticky traps.", management:e[2]+"; remove and destroy badly affected parts; use approved controls only as per local agricultural advisory."}; }
   function D(k,note){ var e = T.diseases[k]; return {name:e[0], symptoms:e[1]+(note?" "+note:""), cause:e[2], prevention:e[3], management:"Rogue infected plants, improve drainage and airflow; apply bio-agents first and chemicals only on local advisory."}; }
