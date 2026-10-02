@@ -552,13 +552,18 @@ function mkShowDetail(i){
   const s=mkS(), r=s.records[i]; if(!r) return;
   const same=s.records.filter(x=>x.market===r.market).slice(0,12);
   const comms=mkUniq(s.records.filter(x=>x.market===r.market).map(x=>x.commodity));
-  document.getElementById("mkDetail").innerHTML='<div class="grid g2"><div class="card"><h3>'+esc(r.market)+'</h3>'
-  +'<dl class="kv"><dt>District</dt><dd>'+esc(r.district)+'</dd><dt>State</dt><dd>'+esc(r.state)+'</dd><dt>Commodity</dt><dd>'+esc(r.commodity)+' ('+esc(r.variety||"—")+')</dd><dt>Latest modal price</dt><dd><b>'+mkRs(r.modalPrice)+'</b></dd><dt>Price range</dt><dd>'+mkRs(r.minPrice)+' – '+mkRs(r.maxPrice)+'</dd><dt>Last Updated</dt><dd>'+esc(r.date||s.meta.dataDate||"—")+'</dd></dl>'
-  +'<p class="muted small">Market contact/address is not published in this dataset — confirm timings with the district APMC or <a href="https://agmarknet.gov.in" target="_blank" rel="noopener">agmarknet.gov.in</a>.</p></div>'
-  +'<div class="card"><h3>Available commodities here ('+comms.length+')</h3><p class="small">'+comms.map(esc).join(", ")+'</p>'
-  +'<div class="table-wrap"><table style="min-width:0"><thead><tr><th>Commodity</th><th>Modal</th><th>Date</th></tr></thead><tbody>'
-  +same.map(x=>'<tr><td>'+esc(x.commodity)+'</td><td><b>'+mkRs(x.modalPrice)+'</b></td><td>'+esc(x.date)+'</td></tr>').join("")
-  +'</tbody></table></div></div></div>';
+  const source=String(r.source||s.meta.source||"Government market API");
+  const updated=String(r.fetchedAt||s.meta.fetchedAt||"");
+  document.getElementById("mkDetail").innerHTML='<div class="market-detail-card"><div class="section-title" style="margin-top:0"><h2>Market Full Details</h2><button class="btn btn-sm" id="mkCloseDetail">Close</button></div>'
+  +'<div class="grid g2"><div class="card market-detail-main"><h3>'+esc(r.market||"Market")+'</h3>'
+  +'<dl class="kv"><dt>Crop / Commodity</dt><dd><b>'+esc(r.commodity||"—")+'</b></dd><dt>Variety</dt><dd>'+esc(r.variety||"—")+'</dd><dt>Grade</dt><dd>'+esc(r.grade||"—")+'</dd><dt>District</dt><dd>'+esc(r.district||"—")+'</dd><dt>State</dt><dd>'+esc(r.state||"—")+'</dd><dt>Minimum Price</dt><dd>'+mkRs(r.minPrice)+'</dd><dt>Maximum Price</dt><dd>'+mkRs(r.maxPrice)+'</dd><dt>Modal Price</dt><dd><b class="modal-price">'+mkRs(r.modalPrice)+'</b></dd><dt>Unit</dt><dd>'+esc(r.unit||"Quintal")+'</dd><dt>Arrival Date</dt><dd>'+esc(r.date||s.meta.dataDate||"—")+'</dd><dt>API Source</dt><dd>'+esc(source)+'</dd><dt>Fetched At</dt><dd>'+esc(updated?mkWhen(updated):"—")+'</dd></dl>'
+  +'<p class="alert blue small">Market contact/address is not published in this price dataset. Confirm timings, arrivals and the latest sale price with the local APMC before selling.</p>'
+  +'<a class="btn btn-primary btn-sm" href="https://agmarknet.gov.in" target="_blank" rel="noopener">Open AGMARKNET</a></div>'
+  +'<div class="card"><h3>Other commodities in this market ('+comms.length+')</h3><p class="small">'+(comms.length?comms.map(esc).join(", "):"No additional commodities in the current result set.")+'</p>'
+  +'<div class="table-wrap"><table style="min-width:0"><thead><tr><th>Commodity</th><th>Variety</th><th>Modal</th><th>Date</th></tr></thead><tbody>'
+  +same.map(x=>'<tr><td>'+esc(x.commodity)+'</td><td>'+esc(x.variety||"—")+'</td><td><b>'+mkRs(x.modalPrice)+'</b></td><td>'+esc(x.date||"—")+'</td></tr>').join("")
+  +'</tbody></table></div></div></div></div>';
+  const close=document.getElementById("mkCloseDetail"); if(close) close.onclick=()=>{ const d=document.getElementById("mkDetail"); if(d) d.innerHTML=""; };
   document.getElementById("mkDetail").scrollIntoView({behavior:"smooth"});
 }
 function mkLoad(force){
