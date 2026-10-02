@@ -25,6 +25,7 @@ const cfg = {
   agmarknetApiUrl: (process.env.AGMARKNET_API_URL || "https://api.agmarknet.gov.in/v1").replace(/\/$/, ""),
   cedaApiUrl: (process.env.CEDA_API_URL || "https://api.ceda.ashoka.edu.in").replace(/\/$/, ""),
   cedaApiKey: process.env.CEDA_API_KEY || "",
+  freeMandiApiUrl: (process.env.FREE_MANDI_API_URL || "https://mandi-api.onrender.com/v1").replace(/\/$/, ""),
   marketApiUrl: process.env.MARKET_API_URL || "https://api.data.gov.in/resource/9ef84268-d588-465a-a308-a864a43d0070",
   marketDatasetUrl: process.env.MARKET_DATASET_URL || "https://data.gov.in/resource/current-daily-price-various-commodities-various-markets-mandi",
   imageApiUrl: process.env.IMAGE_API_URL || "https://commons.wikimedia.org/w/api.php",
