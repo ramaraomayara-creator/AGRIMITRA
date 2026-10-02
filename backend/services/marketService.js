@@ -80,6 +80,49 @@ async function getAgmarknetPrices(cfg, f) {
   if(!rows.length) throw Object.assign(new Error("AGMARKNET returned no records"),{code:"NO_RECORDS"});
   return {records:rows,total:rows.length,dataDate:rows.reduce((m,x)=>x.arrivalDate>m?x.arrivalDate:m,""),fetchedAt:new Date().toISOString(),source:"AGMARKNET 2.0",sourceUrl:"https://agmarknet.gov.in/home",isLive:true,cached:false};
 }
+async function getFreeMandiApiPrices(cfg, f) {
+  const base = (cfg.freeMandiApiUrl || "https://mandi-api.onrender.com/v1").replace(/\/$/,"");
+  const p = new URLSearchParams();
+  if (f.state) p.set("state", f.state);
+  if (f.commodity) p.set("commodity", f.commodity);
+  const limit = Math.min(parseInt(f.limit || 200, 10) || 200, 200);
+  p.set("limit", String(limit));
+  const body = await fetchJson(base + "/prices?" + p.toString(), {
+    headers: { Accept: "application/json" }
+  });
+  const raw = Array.isArray(body.records) ? body.records : (Array.isArray(body.data) ? body.data : []);
+  const records = raw.map(r => ({
+    commodity: r.commodity || r.Commodity || r.commodity_name || "",
+    variety: r.variety || r.Variety || "",
+    grade: r.grade || r.Grade || "",
+    state: r.state || r.State || f.state || "",
+    district: r.district || r.District || "",
+    market: r.market || r.Market || r.market_name || "",
+    arrivalDate: r.arrival_date || r.Arrival_Date || r.date || "",
+    minPrice: num(r.min_price ?? r.minPrice ?? r.min),
+    maxPrice: num(r.max_price ?? r.maxPrice ?? r.max),
+    modalPrice: num(r.modal_price ?? r.modalPrice ?? r.modal),
+    unit: r.unit || r.Unit || "Quintal",
+    unitNote: "Unit as published by the free Mandi API; verify the original government record before selling.",
+    source: "Free Mandi API (data.gov.in-derived)",
+    sourceUrl: "https://mandi-api.vercel.app/",
+    isLive: true,
+    fetchedAt: new Date().toISOString()
+  })).filter(r => r.commodity && (r.modalPrice !== null || r.minPrice !== null || r.maxPrice !== null));
+  if (!records.length) throw Object.assign(new Error("Free Mandi API returned no records"), {code:"NO_RECORDS"});
+  let dataDate = ""; records.forEach(r => { if (r.arrivalDate > dataDate) dataDate = r.arrivalDate; });
+  return {
+    records,
+    total: parseInt(body.total || records.length, 10) || records.length,
+    dataDate,
+    fetchedAt: new Date().toISOString(),
+    source: "Free Mandi API (data.gov.in-derived)",
+    sourceUrl: "https://mandi-api.vercel.app/",
+    isLive: true,
+    cached: false,
+    coverageNote: "Fallback covers Maharashtra, Uttar Pradesh, Punjab, Madhya Pradesh and Karnataka."
+  };
+}
 async function getPrices(cfg, f) {
   const key = "prices:" + JSON.stringify(f);
   const hit = cache.get(key);
@@ -130,4 +173,10 @@ async function getMarkets(cfg, f) {
   });
   return { markets: [...map.values()], isLive: true, cached: !!res.cached, fetchedAt: res.fetchedAt, source: res.source, sourceUrl: res.sourceUrl };
 }
-module.exports = { getPrices, getMarkets };
+module.exports = { getPrices, getMarkets };  sources.push(async () => {
+    if (f.state && !["maharashtra","uttar pradesh","punjab","madhya pradesh","karnataka"].some(s => String(f.state).toLowerCase().includes(s))) {
+      throw Object.assign(new Error("Free Mandi API does not cover this state"), {code:"NOT_CONFIGURED"});
+    }
+    return getFreeMandiApiPrices(cfg, f);
+  });
+
