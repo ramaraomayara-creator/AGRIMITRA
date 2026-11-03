@@ -130,7 +130,7 @@
   }
   function pageWeatherIndia() {
     const savedRaw = store.get("location", "Guntur, Andhra Pradesh");
-    const saved = String(savedRaw || "Guntur, Andhra Pradesh").replace(/,\\s*AP$/i, ", Andhra Pradesh").replace(/,\\s*TS$/i, ", Telangana");
+    const saved = String(savedRaw || "Guntur, Andhra Pradesh").replace(/,\s*AP$/i, ", Andhra Pradesh").replace(/,\s*TS$/i, ", Telangana");
     const options = LOCATIONS.map((p, i) => '<option value="' + i + '">' + esc(p[0] + " — " + p[1]) + '</option>').join("");
     return '<div class="section-title"><h2>India Weather Dashboard <span class="badge blue">Open-Meteo forecast</span></h2></div>' +
       '<div class="card" style="margin-bottom:14px">' +
