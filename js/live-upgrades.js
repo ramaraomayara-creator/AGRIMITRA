@@ -94,6 +94,10 @@
   }
 
   function amWeatherBind(){
+    /* The dedicated India-wide weather module (js/weather-india.js) owns the current
+       weather route and renders #wxIndiaOut, not #wLiveOut. Do not start a second
+       timer or bind the legacy single-place widget when that module is active. */
+    if(!document.getElementById("wLiveOut")) return;
     if(window._amWxT){ clearInterval(window._amWxT); window._amWxT=null; }
     const input=document.getElementById("wPlaceLive"), btn=document.getElementById("wGo");
     const go=()=>amLoadWeather((input&&input.value||"Guntur, AP").trim());
