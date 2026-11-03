@@ -24,7 +24,7 @@
     ["Mizoram","Aizawl",23.7271,92.7176],
     ["Nagaland","Kohima",25.6751,94.1086],
     ["Odisha","Bhubaneswar",20.2961,85.8245],
-    ["Punjab","Amritsar",31.634,74.8723],
+    ["Punjab","Chandigarh",30.7333,76.7794],
     ["Rajasthan","Jaipur",26.9124,75.7873],
     ["Sikkim","Gangtok",27.3389,88.6065],
     ["Tamil Nadu","Chennai",13.0827,80.2707],
